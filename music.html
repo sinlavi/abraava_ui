@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>Music Platform | iTunes_Catalog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <style>
+        .playlist-bar {
+            background: #e1e1e1;
+            padding: 8px 12px;
+            border-bottom: 1px solid #ccced1;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .comment-section {
+            padding: 15px;
+            background: #f9fafb;
+            border-top: 1px solid #eee;
+        }
+        .comment-item {
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed #ddd;
+        }
+        .comment-user {
+            font-weight: bold;
+            font-size: 10px;
+            color: #235a81;
+        }
+        .comment-text {
+            font-size: 11px;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="mobile-header-bar">
+    <button class="menu-toggle-btn" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <span class="header-title">Music Platform</span>
+    <button class="props-toggle-btn" id="propsToggle"><i class="fas fa-info-circle"></i></button>
+</div>
+
+<div class="layout-overlay" id="layoutOverlay"></div>
+
+<div class="pmah-layout">
+    <div class="left-nav" id="leftSidebar">
+        <div class="left-header">
+            <i class="fas fa-music"></i>
+            <span>Library</span>
+        </div>
+        <div class="search-panel">
+            <input type="text" id="searchTerm" placeholder="Search music..." value="Pink Floyd" />
+            <button id="doSearchBtn"><i class="fas fa-search"></i> Search</button>
+        </div>
+        <div class="pma-header"><h3><i class="fas fa-list"></i> My Playlists</h3></div>
+        <div id="playlistList" class="tree-container">
+            <!-- Playlists will be loaded here -->
+        </div>
+        <div class="bulk-bar">
+            <button id="createPlaylistBtn" class="btn-sm"><i class="fas fa-plus"></i> New Playlist</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="tabs">
+            <div class="tab active" data-tab="player"><i class="fas fa-play-circle"></i> Player</div>
+            <div class="tab" data-tab="browse" id="browseTabHead"><i class="fas fa-search"></i> Browse</div>
+            <div style="margin-left:auto; display:flex; align-items:center; padding-right:10px;">
+                <a href="index.html" class="btn-sm btn-primary" style="margin-right:10px; text-decoration:none;"><i class="fas fa-cog"></i> Dashboard</a>
+                <span id="userNameDisplay" style="margin-right:10px; font-weight:bold; color:#235a81;"></span>
+                <button id="logoutBtn" class="btn-sm"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+
+        <div id="player-tab" class="tab-pane active-pane">
+            <div id="browseWorkspace" style="overflow-y:auto; flex:1; display:flex; flex-direction:column;">
+                <div class="empty-msg" style="margin-top:60px;">
+                    <i class="fas fa-music fa-3x" style="color:#235a81; margin-bottom:10px;"></i><br />
+                    Select a track or playlist to start listening.
+                </div>
+            </div>
+            <div id="commentSection" class="comment-section" style="display:none;">
+                <h4>Comments</h4>
+                <div id="commentList" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;"></div>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="commentInput" placeholder="Add a comment..." style="flex:1; padding:5px; border:1px solid #ccc; border-radius:2px;" />
+                    <button id="submitCommentBtn" class="btn-sm btn-primary">Post</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="browse-tab" class="tab-pane">
+            <div id="treeContainer" class="tree-container"></div>
+        </div>
+    </div>
+
+    <div class="right-properties" id="rightPanel">
+        <div class="props-card"><div class="empty-msg"><i class="fas fa-info-circle"></i> No selection.</div></div>
+    </div>
+</div>
+
+<div id="toast" class="toast-message"></div>
+
+<div class="audio-player-bar" id="audioPlayerBar">
+    <div class="ap-artwork" id="apArtwork"><i class="fas fa-music"></i></div>
+    <div class="ap-info">
+        <div class="ap-title" id="apTitle">No track loaded</div>
+        <div class="ap-artist" id="apArtist">—</div>
+    </div>
+    <div class="ap-controls">
+        <button id="apPrevBtn"><i class="fas fa-step-backward"></i></button>
+        <button class="ap-play-btn" id="apPlayBtn"><i class="fas fa-play"></i></button>
+        <button id="apNextBtn"><i class="fas fa-step-forward"></i></button>
+    </div>
+    <div class="ap-progress-wrap">
+        <span class="ap-time" id="apCurrentTime">0:00</span>
+        <input type="range" id="apProgress" min="0" max="1000" value="0" />
+        <span class="ap-time" id="apDuration">0:00</span>
+    </div>
+    <div class="ap-volume-wrap">
+        <i class="fas fa-volume-up"></i>
+        <input type="range" id="apVolume" min="0" max="100" value="80" />
+    </div>
+</div>
+
+<script src="assets/js/music.js"></script>
+</body>
+</html>

@@ -19,24 +19,6 @@
 
 <div class="layout-overlay" id="layoutOverlay"></div>
 
-<!-- Auth Overlay -->
-<div id="authOverlay" class="auth-overlay">
-    <div class="auth-box" id="loginBox">
-        <h2>Login</h2>
-        <input type="text" id="loginUsername" placeholder="Username" />
-        <input type="password" id="loginPassword" placeholder="Password" />
-        <button id="loginBtn" class="btn btn-primary">Login</button>
-        <div class="auth-switch">Don't have an account? <span id="switchToSignup">Signup</span></div>
-    </div>
-    <div class="auth-box" id="signupBox" style="display:none;">
-        <h2>Signup</h2>
-        <input type="text" id="signupUsername" placeholder="Username" />
-        <input type="password" id="signupPassword" placeholder="Password" />
-        <button id="signupBtn" class="btn btn-success">Signup</button>
-        <div class="auth-switch">Already have an account? <span id="switchToLogin">Login</span></div>
-    </div>
-</div>
-
 <!-- Main Layout -->
 <div class="pmah-layout">
     <!-- Left Nav -->
@@ -85,6 +67,7 @@
             <div class="tab" data-tab="stats"><i class="fas fa-chart-bar"></i> Statistics</div>
             <div class="tab" data-tab="admin" id="adminTabHead" style="display:none;"><i class="fas fa-user-shield"></i> Admin</div>
             <div style="margin-left:auto; display:flex; align-items:center; padding-right:10px;">
+                <a href="music.html" class="btn-sm btn-primary" style="margin-right:10px; text-decoration:none;"><i class="fas fa-headphones"></i> Music Player</a>
                 <span id="userNameDisplay" style="margin-right:10px; font-weight:bold; color:#235a81;"></span>
                 <button id="logoutBtn" class="btn-sm"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>

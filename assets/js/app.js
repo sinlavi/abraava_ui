@@ -1448,7 +1448,8 @@ async function checkAuthStatus() {
     try {
         const res = await apiCall('/auth/status');
         if (res.logged_in) {
-            document.getElementById('authOverlay').style.display = 'none';
+            const overlay = document.getElementById('authOverlay');
+            if (overlay) overlay.style.display = 'none';
             document.getElementById('userNameDisplay').textContent = res.user.username;
             if (res.user.role === 'admin') {
                 document.getElementById('adminTabHead').style.display = 'flex';
@@ -1456,10 +1457,10 @@ async function checkAuthStatus() {
                 document.getElementById('adminTabHead').style.display = 'none';
             }
         } else {
-            document.getElementById('authOverlay').style.display = 'flex';
+            window.location.href = 'login.html';
         }
     } catch (e) {
-        document.getElementById('authOverlay').style.display = 'flex';
+        window.location.href = 'login.html';
     }
 }
 

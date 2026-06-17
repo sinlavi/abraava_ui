@@ -23,6 +23,17 @@ $router->add('GET', '/download/queue', 'DownloadController@queue');
 $router->add('POST', '/download/update', 'DownloadController@update');
 $router->add('DELETE', '/download/delete', 'DownloadController@delete');
 
+// Playlist routes
+$router->add('POST', '/playlists', 'PlaylistController@create');
+$router->add('GET', '/playlists', 'PlaylistController@list');
+$router->add('POST', '/playlists/tracks', 'PlaylistController@addTrack');
+$router->add('GET', '/playlists/tracks', 'PlaylistController@getTracks');
+$router->add('DELETE', '/playlists', 'PlaylistController@delete');
+
+// Comment routes
+$router->add('POST', '/comments', 'CommentController@add');
+$router->add('GET', '/comments', 'CommentController@list');
+
 // Stats and DB management (to be implemented)
 $router->add('GET', '/stats', 'DatabaseController@stats');
 
