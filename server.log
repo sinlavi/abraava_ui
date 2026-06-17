@@ -1,0 +1,52 @@
+[Wed Jun 17 08:38:18 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Wed Jun 17 08:39:40 2026] [::1]:59938 Accepted
+[Wed Jun 17 08:39:40 2026] [::1]:59938 [200]: GET /login.html
+[Wed Jun 17 08:39:40 2026] [::1]:59938 Closing
+[Wed Jun 17 08:39:40 2026] [::1]:59950 Accepted
+[Wed Jun 17 08:39:40 2026] [::1]:59958 Accepted
+[Wed Jun 17 08:39:40 2026] [::1]:59950 [200]: GET /assets/css/style.css
+[Wed Jun 17 08:39:40 2026] [::1]:59958 [200]: GET /assets/js/auth.js
+[Wed Jun 17 08:39:40 2026] [::1]:59950 Closing
+[Wed Jun 17 08:39:40 2026] [::1]:59958 Closing
+[Wed Jun 17 08:39:41 2026] [::1]:59962 Accepted
+[Wed Jun 17 08:39:41 2026] [::1]:59962 [200]: GET /signup.html
+[Wed Jun 17 08:39:41 2026] [::1]:59962 Closing
+[Wed Jun 17 08:39:41 2026] [::1]:59970 Accepted
+[Wed Jun 17 08:39:41 2026] [::1]:59980 Accepted
+[Wed Jun 17 08:39:41 2026] [::1]:59970 [200]: GET /assets/css/style.css
+[Wed Jun 17 08:39:41 2026] [::1]:59980 [200]: GET /assets/js/auth.js
+[Wed Jun 17 08:39:41 2026] [::1]:59970 Closing
+[Wed Jun 17 08:39:41 2026] [::1]:59980 Closing
+[Wed Jun 17 08:39:41 2026] [::1]:59992 Accepted
+[Wed Jun 17 08:39:41 2026] [::1]:59992 [200]: POST /api/index.php/auth/signup
+[Wed Jun 17 08:39:41 2026] [::1]:59992 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:59998 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:59998 [200]: GET /login.html
+[Wed Jun 17 08:39:43 2026] [::1]:59998 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:60006 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:60020 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:60006 [200]: GET /assets/css/style.css
+[Wed Jun 17 08:39:43 2026] [::1]:60020 [200]: GET /assets/js/auth.js
+[Wed Jun 17 08:39:43 2026] [::1]:60006 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:60020 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:55410 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:55410 [200]: GET /login.html
+[Wed Jun 17 08:39:43 2026] [::1]:55410 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:55418 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:55432 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:55418 [200]: GET /assets/css/style.css
+[Wed Jun 17 08:39:43 2026] [::1]:55432 [200]: GET /assets/js/auth.js
+[Wed Jun 17 08:39:43 2026] [::1]:55418 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:55432 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:55434 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:55434 [200]: POST /api/index.php/auth/login
+[Wed Jun 17 08:39:43 2026] [::1]:55434 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:55440 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:55440 [200]: GET /index.html
+[Wed Jun 17 08:39:43 2026] [::1]:55440 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:55448 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:55462 Accepted
+[Wed Jun 17 08:39:43 2026] [::1]:55448 [200]: GET /assets/css/style.css
+[Wed Jun 17 08:39:43 2026] [::1]:55462 [200]: GET /assets/js/app.js
+[Wed Jun 17 08:39:43 2026] [::1]:55448 Closing
+[Wed Jun 17 08:39:43 2026] [::1]:55462 Closing

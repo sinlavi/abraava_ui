@@ -10,7 +10,7 @@ let isPlaying = false;
 //  CORE UTILS
 // ============================================================
 async function apiCall(endpoint, method = 'GET', body = null) {
-    if (!endpoint.startsWith('/api/')) endpoint = '/api' + endpoint;
+    if (!endpoint.startsWith('/api/index.php/')) endpoint = '/api/index.php' + endpoint;
     const options = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) options.body = JSON.stringify(body);
     const resp = await fetch(endpoint, options);
@@ -39,6 +39,13 @@ async function checkAuthStatus() {
         const res = await apiCall('/auth/status');
         if (res.logged_in) {
             document.getElementById('userNameDisplay').textContent = res.user.username;
+            const dashboardLink = document.querySelector("a[href='index.html']");
+            if (res.user.role === 'admin') {
+                dashboardLink.innerHTML = '<i class="fas fa-shield-alt"></i> Admin Panel';
+                dashboardLink.style.display = 'inline-flex';
+            } else {
+                dashboardLink.style.display = 'none';
+            }
             loadPlaylists();
         } else {
             window.location.href = 'login.html';
@@ -146,27 +153,31 @@ async function loadPlaylistTracks(id) {
     }
     // Lookup tracks and display in workspace
     const tracksRes = await apiCall(`/lookup?id=${res.tracks.join(',')}`);
-    renderTrackList(tracksRes.results);
+    renderTrackList(tracksRes.results, `Playlist: ${id}`);
 }
 
-function renderTrackList(tracks) {
+function renderTrackList(tracks, title = "Search Results") {
     const container = document.getElementById('browseWorkspace');
     container.innerHTML = `
-        <table class="data-table">
-            <thead><tr><th>#</th><th>Track</th><th>Artist</th><th>Action</th></tr></thead>
-            <tbody>
-                ${tracks.map((t, i) => `
-                    <tr>
-                        <td>${i+1}</td>
-                        <td onclick='playTrack(${JSON.stringify(t)})' style="cursor:pointer; color:#235a81; font-weight:bold;">${escapeHtml(t.trackName)}</td>
-                        <td>${escapeHtml(t.artistName)}</td>
-                        <td>
-                            <button onclick='addToPlaylistPrompt(${t.trackId})' class="btn-sm"><i class="fas fa-plus"></i></button>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
+        <div class="pma-header"><h3><i class="fas fa-music"></i> ${escapeHtml(title)}</h3></div>
+        <div style="padding:10px;">
+            <table class="data-table">
+                <thead><tr><th>#</th><th>Track</th><th>Artist</th><th>Action</th></tr></thead>
+                <tbody>
+                    ${tracks.map((t, i) => `
+                        <tr>
+                            <td>${i+1}</td>
+                            <td onclick='playTrack(${JSON.stringify(t).replace(/'/g, "&apos;")})' style="cursor:pointer; color:#235a81; font-weight:bold;">${escapeHtml(t.trackName)}</td>
+                            <td>${escapeHtml(t.artistName)}</td>
+                            <td>
+                                <button onclick='addToPlaylistPrompt(${t.trackId})' class="btn-sm" title="Add to Playlist"><i class="fas fa-plus"></i></button>
+                                <button onclick='playTrack(${JSON.stringify(t).replace(/'/g, "&apos;")})' class="btn-sm btn-play" title="Play"><i class="fas fa-play"></i></button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
     `;
 }
 

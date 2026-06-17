@@ -15,11 +15,16 @@ class Router {
         $method = $_SERVER['REQUEST_METHOD'];
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-        // Handle script subdirectory
-        $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
-        if ($scriptDir !== '/' && strpos($path, $scriptDir) === 0) {
+        // Handle script subdirectory and index.php
+        $scriptName = $_SERVER['SCRIPT_NAME'];
+        $scriptDir = dirname($scriptName);
+
+        if (strpos($path, $scriptName) === 0) {
+            $path = substr($path, strlen($scriptName));
+        } elseif ($scriptDir !== '/' && strpos($path, $scriptDir) === 0) {
             $path = substr($path, strlen($scriptDir));
         }
+
         $path = rtrim($path, '/') ?: '/';
 
         foreach ($this->routes as $route) {

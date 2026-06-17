@@ -1,6 +1,6 @@
 async function apiCall(endpoint, method = 'GET', body = null) {
-    if (!endpoint.startsWith('/api/')) {
-        endpoint = '/api' + endpoint;
+    if (!endpoint.startsWith('/api/index.php/')) {
+        endpoint = '/api/index.php' + endpoint;
     }
     const options = { method, headers: { 'Content-Type': 'application/json' } };
     if (body && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {

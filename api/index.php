@@ -13,11 +13,11 @@ $router->add('GET', '/auth/status', 'AuthController@status');
 $router->add('GET', '/users', 'UserController@list');
 $router->add('DELETE', '/users', 'UserController@delete');
 
-// iTunes routes (to be implemented)
+// iTunes routes
 $router->add('GET', '/search', 'iTunesController@search');
 $router->add('GET', '/lookup', 'iTunesController@lookup');
 
-// Download routes (to be implemented)
+// Download routes
 $router->add('POST', '/download/add', 'DownloadController@add');
 $router->add('GET', '/download/queue', 'DownloadController@queue');
 $router->add('POST', '/download/update', 'DownloadController@update');
@@ -34,7 +34,7 @@ $router->add('DELETE', '/playlists', 'PlaylistController@delete');
 $router->add('POST', '/comments', 'CommentController@add');
 $router->add('GET', '/comments', 'CommentController@list');
 
-// Stats and DB management (to be implemented)
+// Stats and DB management
 $router->add('GET', '/stats', 'DatabaseController@stats');
 
 $router->handleRequest();
