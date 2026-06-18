@@ -1,8 +1,6 @@
 // ============================================================
 //  CONFIG
 // ============================================================
-const API_BASE = ''; // Use relative path for our new API
-const TOKEN = '917701880:mFIgQ3sM39OrgUraH2mhF2YQkPeZ1OFe8Zk';
 const PROXY_URL = '/ui/audio_proxy.php'; // PHP proxy endpoint - needs to be updated or handled
 
 // ============================================================
@@ -94,79 +92,6 @@ document.getElementById('modalOverlay').addEventListener('click', (e) => {
 });
 
 // ============================================================
-//  API
-// ============================================================
-async function apiCall(endpoint, method = 'GET', body = null) {
-    if (!endpoint.startsWith('/api/')) {
-        endpoint = '/api' + endpoint;
-    }
-    const url = `${API_BASE}${endpoint}`;
-    const options = { method, headers: { 'Content-Type': 'application/json' } };
-    if (body && (method === 'POST' || method === 'PUT' || method === 'DELETE')) {
-        options.body = JSON.stringify(body);
-    }
-    const resp = await fetch(url, options);
-    if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`HTTP ${resp.status}: ${text}`);
-    }
-    return resp.json();
-}
-
-async function searchItunes(term, entity) {
-    let url = `/search?term=${encodeURIComponent(term)}&limit=200&country=US`;
-    if (entity !== 'all') url += `&entity=${entity}`;
-    else url += `&media=music`;
-    const data = await apiCall(url);
-    return data.results || [];
-}
-
-async function fetchChildren(item, offset = 0, limit = 200) {
-    try {
-        let endpoint, params;
-        if (item.wrapperType === 'artist' && item.artistId) {
-            endpoint = '/lookup';
-            params = `id=${cleanId(item.artistId)}&entity=album&limit=${limit}`;
-        } else if (item.wrapperType === 'collection' && item.collectionId) {
-            endpoint = '/lookup';
-            params = `id=${cleanId(item.collectionId)}&entity=song&limit=${limit}`;
-        } else {
-            return [];
-        }
-        const data = await apiCall(`${endpoint}?${params}`);
-        const results = data.results || [];
-        const childType = item.wrapperType === 'artist' ? 'collection' : 'track';
-        return results.filter(r => r.wrapperType === childType);
-    } catch (e) {
-        console.warn('Hierarchy fetch error', e);
-        return [];
-    }
-}
-
-async function fetchAllChildren(item) {
-    let all = [];
-    let offset = 0;
-    const pageSize = 200;
-    let hasMore = true;
-    while (hasMore) {
-        try {
-            const batch = await fetchChildren(item, offset, pageSize);
-            if (batch.length === 0) { hasMore = false; } else {
-                all = all.concat(batch);
-                offset += pageSize;
-                if (batch.length < pageSize) hasMore = false;
-            }
-        } catch (e) {
-            console.warn('Batch error', e);
-            hasMore = false;
-        }
-    }
-    return all;
-}
-
-function cleanId(id) { return id ? id.toString().replace(/^it_/, '') : null; }
-
-// ============================================================
 //  CACHE / HELPERS
 // ============================================================
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;',
@@ -230,7 +155,7 @@ function renderTree(parentElement, items) {
             toggleSpan.className = 'tree-toggle';
             toggleSpan.setAttribute('data-node-key', itemKey);
             toggleSpan.innerHTML = `
-                <input type="checkbox" class="tree-checkbox" data-key="${itemKey}">
+                <input type="checkbox" class="tree-checkbox" data-key="${itemKey}" aria-label="Select ${escapeHtml(displayName)}">
                 <i class="${icon}"></i>
                 <span class="node-label">
                     <span>${escapeHtml(displayName)}</span>
@@ -238,9 +163,9 @@ function renderTree(parentElement, items) {
                 </span>
                 ${countInfo}
                 <span class="node-actions">
-                    <button class="tree-add-btn" data-key="${itemKey}" title="Add to queue"><i class="fas fa-plus-circle"></i></button>
-                    <button class="tree-expand-btn" data-key="${itemKey}" title="Expand"><i class="fas fa-chevron-right"></i></button>
-                    ${item.wrapperType === 'track' && item.mirrorUrls?.audioUrl ? `<button class="tree-play-btn" data-key="${itemKey}" title="Play"><i class="fas fa-play"></i></button>` : ''}
+                    <button class="tree-add-btn" data-key="${itemKey}" title="Add to queue" aria-label="Add to queue"><i class="fas fa-plus-circle"></i></button>
+                    <button class="tree-expand-btn" data-key="${itemKey}" title="Expand" aria-label="Expand"><i class="fas fa-chevron-right"></i></button>
+                    ${item.wrapperType === 'track' && item.mirrorUrls?.audioUrl ? `<button class="tree-play-btn" data-key="${itemKey}" title="Play" aria-label="Play"><i class="fas fa-play"></i></button>` : ''}
                 </span>
             `;
             li.appendChild(toggleSpan);
@@ -440,7 +365,7 @@ function switchTab(target) {
     Object.values(panes).forEach(p => p.classList.remove('active-pane'));
     if (panes[target]) panes[target].classList.add('active-pane');
     if (target === 'stats') loadStats();
-    if (target === 'admin') loadUsers();
+    if (target === 'admin') loadUsersList();
 }
 
 // ============================================================
@@ -454,19 +379,19 @@ function renderMirrorButtons(mirrorUrls, trackItem) {
         const proxied = getProxiedAudioUrl(audioRaw);
         if (proxied) {
             html +=
-                `<button class="mirror-btn" onclick="playAudioUrl('${escapeHtml(proxied)}', '${trackItem ? escapeHtml(trackItem.trackName || '') : ''}', '${trackItem ? escapeHtml(trackItem.artistName || '') : ''}', '${trackItem ? escapeHtml(trackItem.artworkUrl100 || trackItem.artworkUrl60 || '') : ''}')" title="Play"><i class="fas fa-play"></i></button>`;
+                `<button class="mirror-btn" onclick="playAudioUrl('${escapeHtml(proxied)}', '${trackItem ? escapeHtml(trackItem.trackName || '') : ''}', '${trackItem ? escapeHtml(trackItem.artistName || '') : ''}', '${trackItem ? escapeHtml(trackItem.artworkUrl100 || trackItem.artworkUrl60 || '') : ''}')" title="Play" aria-label="Play Mirror"><i class="fas fa-play"></i></button>`;
             html +=
-                `<a href="${escapeHtml(proxied)}" target="_blank" class="mirror-btn" title="Download"><i class="fas fa-download"></i></a>`;
+                `<a href="${escapeHtml(proxied)}" target="_blank" class="mirror-btn" title="Download" aria-label="Download Mirror"><i class="fas fa-download"></i></a>`;
         }
     }
     if (mirrorUrls.artworkUrl?.url) {
         html +=
-            `<a href="${escapeHtml(mirrorUrls.artworkUrl.url)}" target="_blank" class="mirror-btn"><i class="fas fa-image"></i></a>`;
+            `<a href="${escapeHtml(mirrorUrls.artworkUrl.url)}" target="_blank" class="mirror-btn" aria-label="View Artwork"><i class="fas fa-image"></i></a>`;
     }
     if (mirrorUrls.previewUrl?.url) {
         const preview = replaceTokenInUrl(mirrorUrls.previewUrl.url);
         html +=
-            `<a href="${escapeHtml(preview)}" target="_blank" class="mirror-btn"><i class="fas fa-play-circle"></i></a>`;
+            `<a href="${escapeHtml(preview)}" target="_blank" class="mirror-btn" aria-label="Play Preview"><i class="fas fa-play-circle"></i></a>`;
     }
     html += '</div>';
     return html;
@@ -673,7 +598,7 @@ async function renderWorkspacePage(item) {
         if (!audio) return '—';
         const proxied = getProxiedAudioUrl(audio);
         if (!proxied) return '—';
-        return `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(proxied)}', '${escapeHtml(track.trackName || '')}', '${escapeHtml(track.artistName || '')}', '${escapeHtml(track.artworkUrl100 || track.artworkUrl60 || '')}')"><i class="fas fa-play"></i></button>`;
+        return `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(proxied)}', '${escapeHtml(track.trackName || '')}', '${escapeHtml(track.artistName || '')}', '${escapeHtml(track.artworkUrl100 || track.artworkUrl60 || '')}')" aria-label="Play Track"><i class="fas fa-play"></i></button>`;
     };
 
     if (type === 'artist') {
@@ -717,7 +642,7 @@ async function renderWorkspacePage(item) {
                     <td data-label="Year">${alb.releaseDate ? new Date(alb.releaseDate).getFullYear() : 'N/A'}</td>
                     <td data-label="Tracks">${alb.trackCount || 0}</td>
                     <td data-label="Mirrors">${subMirror}</td>
-                    <td data-label="Action"><button class="btn-sm btn-success" onclick="addAllToQueueByType('album', '${cleanId(alb.collectionId)}', '${escapeHtml(alb.collectionName)}')"><i class="fas fa-download"></i></button></td>
+                    <td data-label="Action"><button class="btn-sm btn-success" onclick="addAllToQueueByType('album', '${cleanId(alb.collectionId)}', '${escapeHtml(alb.collectionName)}')" aria-label="Add Album to Queue"><i class="fas fa-download"></i></button></td>
                 </tr>`;
             }
             subBody.innerHTML = html;
@@ -768,7 +693,7 @@ async function renderWorkspacePage(item) {
                     <td data-label="Duration">${duration}</td>
                     <td data-label="Play">${playBtn}</td>
                     <td data-label="Mirrors">${subMirror}</td>
-                    <td data-label="Action"><button class="btn-sm btn-success" onclick="addAllToQueueByType('track', '${cleanId(trk.trackId)}', '${escapeHtml(trk.trackName)}')"><i class="fas fa-download"></i></button></td>
+                    <td data-label="Action"><button class="btn-sm btn-success" onclick="addAllToQueueByType('track', '${cleanId(trk.trackId)}', '${escapeHtml(trk.trackName)}')" aria-label="Add Track to Queue"><i class="fas fa-download"></i></button></td>
                 </tr>`;
             }
             subBody.innerHTML = html;
@@ -780,7 +705,7 @@ async function renderWorkspacePage(item) {
             '—';
         const audioRaw = freshItem.mirrorUrls?.audioUrl?.url || freshItem.mirrorUrls?.audioUrl;
         const playBtn = audioRaw ?
-            `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(getProxiedAudioUrl(audioRaw))}', '${escapeHtml(freshItem.trackName || '')}', '${escapeHtml(freshItem.artistName || '')}', '${escapeHtml(freshItem.artworkUrl100 || freshItem.artworkUrl60 || '')}')"><i class="fas fa-play"></i> Play</button>` :
+            `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(getProxiedAudioUrl(audioRaw))}', '${escapeHtml(freshItem.trackName || '')}', '${escapeHtml(freshItem.artistName || '')}', '${escapeHtml(freshItem.artworkUrl100 || freshItem.artworkUrl60 || '')}')" aria-label="Play Track"><i class="fas fa-play"></i> Play</button>` :
             '—';
 
         container.innerHTML = `
@@ -788,7 +713,7 @@ async function renderWorkspacePage(item) {
                 <h2><i class="fas fa-music"></i> ${escapeHtml(freshItem.trackName)}</h2>
                 <div style="display:flex; gap:4px; margin-left:auto;">
                     ${playBtn}
-                    <button class="btn-sm btn-success" onclick="addAllToQueueByType('track', '${cleanId(freshItem.trackId)}', '${escapeHtml(freshItem.trackName)}')"><i class="fas fa-download"></i> Add</button>
+                    <button class="btn-sm btn-success" onclick="addAllToQueueByType('track', '${cleanId(freshItem.trackId)}', '${escapeHtml(freshItem.trackName)}')" aria-label="Add Track to Queue"><i class="fas fa-download"></i> Add</button>
                 </div>
             </div>
             <div class="pma-doc-box">
@@ -961,7 +886,7 @@ function renderQueueTable(items) {
                 const proxied = getProxiedAudioUrl(audioRaw);
                 if (proxied) {
                     playBtn =
-                        `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(proxied)}', '${escapeHtml(trackName)}', '${escapeHtml(artist)}', '${escapeHtml(item.artworkUrl100 || item.artworkUrl60 || '')}')"><i class="fas fa-play"></i></button>`;
+                        `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(proxied)}', '${escapeHtml(trackName)}', '${escapeHtml(artist)}', '${escapeHtml(item.artworkUrl100 || item.artworkUrl60 || '')}')" aria-label="Play Track"><i class="fas fa-play"></i></button>`;
                 }
             }
         } else if (item.mirrorUrls?.audioUrl) {
@@ -970,13 +895,13 @@ function renderQueueTable(items) {
                 const proxied = getProxiedAudioUrl(audioRaw);
                 if (proxied) {
                     playBtn =
-                        `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(proxied)}', '${escapeHtml(trackName)}', '${escapeHtml(artist)}', '${escapeHtml(item.artworkUrl100 || item.artworkUrl60 || '')}')"><i class="fas fa-play"></i></button>`;
+                        `<button class="btn-sm btn-play" onclick="playAudioUrl('${escapeHtml(proxied)}', '${escapeHtml(trackName)}', '${escapeHtml(artist)}', '${escapeHtml(item.artworkUrl100 || item.artworkUrl60 || '')}')" aria-label="Play Track"><i class="fas fa-play"></i></button>`;
                 }
             }
         }
 
-        html += `<tr data-id="${item.download_id}">
-            <td class="checkbox-col"><input type="checkbox" class="queue-checkbox" value="${item.download_id}"></td>
+        html += `<tr data-id="${item.download_id}" class="queue-row">
+            <td class="checkbox-col"><input type="checkbox" class="queue-checkbox" value="${item.download_id}" aria-label="Select Track"></td>
             <td data-label="ID"><code>${item.download_id}</code></td>
             <td data-label="Track"><strong><span class="clickable-link" onclick="routeToInternalLink('track', '${cleanId(item.trackId)}')">${escapeHtml(trackName)}</span></strong></td>
             <td data-label="Artist">${escapeHtml(artist)}</td>
@@ -987,12 +912,12 @@ function renderQueueTable(items) {
             </td>
             <td data-label="Actions" class="action-buttons">
                 ${playBtn !== '—' ? playBtn : ''}
-                ${status === 'pending' ? `<button onclick="updateSingleStatus(${item.download_id}, 'downloading')"><i class="fas fa-play"></i></button>` : ''}
-                ${status === 'downloading' ? `<button onclick="updateSingleStatus(${item.download_id}, 'paused')"><i class="fas fa-pause"></i></button>` : ''}
-                ${status === 'paused' ? `<button onclick="updateSingleStatus(${item.download_id}, 'downloading')"><i class="fas fa-play"></i></button>` : ''}
-                ${(status === 'failed' || status === 'stopped') ? `<button onclick="updateSingleStatus(${item.download_id}, 'pending')"><i class="fas fa-sync"></i></button>` : ''}
-                ${(status === 'downloading' || status === 'pending') ? `<button onclick="updateSingleStatus(${item.download_id}, 'stopped')"><i class="fas fa-stop"></i></button>` : ''}
-                <button onclick="deleteSingleDownload(${item.download_id})"><i class="fas fa-trash-alt"></i></button>
+                ${status === 'pending' ? `<button onclick="updateSingleStatus(${item.download_id}, 'downloading')" aria-label="Start Download"><i class="fas fa-play"></i></button>` : ''}
+                ${status === 'downloading' ? `<button onclick="updateSingleStatus(${item.download_id}, 'paused')" aria-label="Pause Download"><i class="fas fa-pause"></i></button>` : ''}
+                ${status === 'paused' ? `<button onclick="updateSingleStatus(${item.download_id}, 'downloading')" aria-label="Resume Download"><i class="fas fa-play"></i></button>` : ''}
+                ${(status === 'failed' || status === 'stopped') ? `<button onclick="updateSingleStatus(${item.download_id}, 'pending')" aria-label="Retry Download"><i class="fas fa-sync"></i></button>` : ''}
+                ${(status === 'downloading' || status === 'pending') ? `<button onclick="updateSingleStatus(${item.download_id}, 'stopped')" aria-label="Stop Download"><i class="fas fa-stop"></i></button>` : ''}
+                <button onclick="deleteSingleDownload(${item.download_id})" aria-label="Delete Task"><i class="fas fa-trash-alt"></i></button>
             </td>
             <td data-label="Mirrors">${mirrorHtml}</td>
             <td data-label="Info">${item.error_message ? `<span class="error-msg">${escapeHtml(item.error_message)}</span>` : item.file_path ? '✅ Downloaded' : '—'}</td>
@@ -1000,8 +925,18 @@ function renderQueueTable(items) {
     }
     tbody.innerHTML = html;
 
-    document.querySelectorAll('.queue-checkbox').forEach(cb => cb.addEventListener('change', () =>
-        updateQueueSelection()));
+    document.querySelectorAll('.queue-checkbox').forEach(cb => cb.addEventListener('change', (e) => {
+        e.stopPropagation();
+        updateQueueSelection();
+    }));
+
+    // Palette: Row-level selection
+    document.querySelectorAll('.queue-row').forEach(row => row.addEventListener('click', (e) => {
+        if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.clickable-link') || e.target.type === 'checkbox') return;
+        const cb = row.querySelector('.queue-checkbox');
+        cb.checked = !cb.checked;
+        updateQueueSelection();
+    }));
 
     const selectAll = document.getElementById('queueSelectAll');
     if (selectAll) {
@@ -1038,8 +973,10 @@ async function loadQueue() {
         currentQueueItems = data.items || [];
         filterQueueItems();
     } catch (e) {
-        document.getElementById('queueBody').innerHTML =
-            `<tr><td colspan="9" class="empty-msg">⚠️ Error: ${e.message}</td></tr>`;
+        const tbody = document.getElementById('queueBody');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="9" class="empty-msg">⚠️ Error: ${e.message}</td></tr>`;
+        }
         console.error(e);
     }
 }
@@ -1280,7 +1217,7 @@ function setSelectedMetadata(item) {
                 playHandler =
                     `playAudioUrl('${escapeHtml(proxied)}', '${escapeHtml(title)}', '${escapeHtml(artist)}', '${escapeHtml(artwork || '')}')`;
                 playButton =
-                    `<button class="btn btn-play" style="width:100%; justify-content:center; margin-bottom:4px;" onclick="${playHandler}"><i class="fas fa-play"></i> Play Track</button>`;
+                    `<button class="btn btn-play" style="width:100%; justify-content:center; margin-bottom:4px;" onclick="${playHandler}" aria-label="Play Track"><i class="fas fa-play"></i> Play Track</button>`;
             }
         }
     }
@@ -1297,7 +1234,7 @@ function setSelectedMetadata(item) {
             ${mirrorHtml ? `<div class="props-row"><span>Mirrors</span><strong>${mirrorHtml}</strong></div>` : ''}
             ${lyricsHtml ? `<div class="props-row" style="flex-direction:column;align-items:stretch;"><span>Lyrics</span><strong>${lyricsHtml}</strong></div>` : ''}
             <hr>
-            <button class="btn btn-success" style="width:100%; justify-content:center;" onclick="${addHandler}"><i class="fas fa-download"></i> ${addButtonText}</button>
+            <button class="btn btn-success" style="width:100%; justify-content:center;" onclick="${addHandler}" aria-label="${addButtonText}"><i class="fas fa-download"></i> ${addButtonText}</button>
         </div>
     `;
 }
@@ -1308,16 +1245,19 @@ function setSelectedMetadata(item) {
 function initTabs() {
     const tabs = document.querySelectorAll('.tab');
     const panes = { queue: document.getElementById('queue-tab'), browse: document.getElementById('browse-tab'),
-        stats: document.getElementById('stats-tab') };
+        stats: document.getElementById('stats-tab'), admin: document.getElementById('admin-tab') };
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             const tabId = tab.dataset.tab;
             tabs.forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             Object.values(panes).forEach(p => p.classList.remove('active-pane'));
-            panes[tabId].classList.add('active-pane');
+            if (panes[tabId]) {
+                panes[tabId].classList.add('active-pane');
+            }
             if (tabId === 'queue') loadQueue();
             if (tabId === 'stats') loadStats();
+            if (tabId === 'admin') loadUsersList();
         });
     });
 }
@@ -1333,7 +1273,8 @@ document.addEventListener('keydown', (e) => {
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
         e.preventDefault();
-        document.getElementById('searchTerm').focus();
+        const searchInput = document.getElementById('searchTerm');
+        if (searchInput) searchInput.focus();
     }
     if (e.key === 'Escape') {
         closeAllDrawers();
@@ -1344,160 +1285,167 @@ document.addEventListener('keydown', (e) => {
 //  EVENT BINDINGS
 // ============================================================
 function initEventBindings() {
-    // Auth bindings
-    document.getElementById('switchToSignup').onclick = () => {
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('signupBox').style.display = 'block';
-    };
-    document.getElementById('switchToLogin').onclick = () => {
-        document.getElementById('signupBox').style.display = 'none';
-        document.getElementById('loginBox').style.display = 'block';
-    };
-    document.getElementById('loginBtn').onclick = login;
-    document.getElementById('signupBtn').onclick = signup;
-    document.getElementById('logoutBtn').onclick = logout;
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.onclick = async () => {
+            await logout();
+            window.location.href = 'index.html';
+        };
+    }
 
-    document.getElementById('doSearchBtn').addEventListener('click', performSearchAndBuild);
-    document.getElementById('refreshQueueBtn').addEventListener('click', loadQueue);
-    document.getElementById('clearFailedBtn').addEventListener('click', clearFailed);
-    document.getElementById('retryFailedBtn').addEventListener('click', retryFailed);
-    document.getElementById('exportQueueBtn').addEventListener('click', exportQueue);
-    document.getElementById('searchTerm').addEventListener('keypress', e => { if (e.key === 'Enter')
-        performSearchAndBuild(); });
+    const doSearchBtn = document.getElementById('doSearchBtn');
+    if (doSearchBtn) doSearchBtn.addEventListener('click', performSearchAndBuild);
 
-    document.getElementById('treeBulkAddBtn').addEventListener('click', addSelectedToQueue);
-    document.getElementById('treeSelectAllBtn').addEventListener('click', treeSelectAll);
-    document.getElementById('treeSelectNoneBtn').addEventListener('click', treeSelectNone);
-    document.getElementById('treeExpandAllBtn').addEventListener('click', treeExpandAll);
-    document.getElementById('treeCollapseAllBtn').addEventListener('click', treeCollapseAll);
+    const refreshQueueBtn = document.getElementById('refreshQueueBtn');
+    if (refreshQueueBtn) refreshQueueBtn.addEventListener('click', loadQueue);
 
-    document.getElementById('queueBulkStartBtn').addEventListener('click', () => bulkUpdate('downloading'));
-    document.getElementById('queueBulkPauseBtn').addEventListener('click', () => bulkUpdate('paused'));
-    document.getElementById('queueBulkResumeBtn').addEventListener('click', () => bulkUpdate('downloading'));
-    document.getElementById('queueBulkStopBtn').addEventListener('click', () => bulkUpdate('stopped'));
-    document.getElementById('queueBulkRetryBtn').addEventListener('click', () => bulkUpdate('pending'));
-    document.getElementById('queueBulkDeleteBtn').addEventListener('click', bulkDelete);
-    document.getElementById('queueSelectAllBtn').addEventListener('click', queueSelectAllVisible);
-    document.getElementById('queueSelectNoneBtn').addEventListener('click', queueSelectNone);
-    document.getElementById('queueInvertBtn').addEventListener('click', queueInvertSelection);
+    const clearFailedBtn = document.getElementById('clearFailedBtn');
+    if (clearFailedBtn) clearFailedBtn.addEventListener('click', clearFailed);
 
-    document.getElementById('queueStatusFilter').addEventListener('change', filterQueueItems);
-    document.getElementById('queueSearchFilter').addEventListener('input', filterQueueItems);
-    document.getElementById('queueSortBy').addEventListener('change', filterQueueItems);
-    document.getElementById('clearQueueFilters').addEventListener('click', () => {
+    const retryFailedBtn = document.getElementById('retryFailedBtn');
+    if (retryFailedBtn) retryFailedBtn.addEventListener('click', retryFailed);
+
+    const exportQueueBtn = document.getElementById('exportQueueBtn');
+    if (exportQueueBtn) exportQueueBtn.addEventListener('click', exportQueue);
+
+    const searchTerm = document.getElementById('searchTerm');
+    if (searchTerm) searchTerm.addEventListener('keypress', e => { if (e.key === 'Enter') performSearchAndBuild(); });
+
+    const treeBulkAddBtn = document.getElementById('treeBulkAddBtn');
+    if (treeBulkAddBtn) treeBulkAddBtn.addEventListener('click', addSelectedToQueue);
+
+    const treeSelectAllBtn = document.getElementById('treeSelectAllBtn');
+    if (treeSelectAllBtn) treeSelectAllBtn.addEventListener('click', treeSelectAll);
+
+    const treeSelectNoneBtn = document.getElementById('treeSelectNoneBtn');
+    if (treeSelectNoneBtn) treeSelectNoneBtn.addEventListener('click', treeSelectNone);
+
+    const treeExpandAllBtn = document.getElementById('treeExpandAllBtn');
+    if (treeExpandAllBtn) treeExpandAllBtn.addEventListener('click', treeExpandAll);
+
+    const treeCollapseAllBtn = document.getElementById('treeCollapseAllBtn');
+    if (treeCollapseAllBtn) treeCollapseAllBtn.addEventListener('click', treeCollapseAll);
+
+    const queueBulkStartBtn = document.getElementById('queueBulkStartBtn');
+    if (queueBulkStartBtn) queueBulkStartBtn.addEventListener('click', () => bulkUpdate('downloading'));
+
+    const queueBulkPauseBtn = document.getElementById('queueBulkPauseBtn');
+    if (queueBulkPauseBtn) queueBulkPauseBtn.addEventListener('click', () => bulkUpdate('paused'));
+
+    const queueBulkResumeBtn = document.getElementById('queueBulkResumeBtn');
+    if (queueBulkResumeBtn) queueBulkResumeBtn.addEventListener('click', () => bulkUpdate('downloading'));
+
+    const queueBulkStopBtn = document.getElementById('queueBulkStopBtn');
+    if (queueBulkStopBtn) queueBulkStopBtn.addEventListener('click', () => bulkUpdate('stopped'));
+
+    const queueBulkRetryBtn = document.getElementById('queueBulkRetryBtn');
+    if (queueBulkRetryBtn) queueBulkRetryBtn.addEventListener('click', () => bulkUpdate('pending'));
+
+    const queueBulkDeleteBtn = document.getElementById('queueBulkDeleteBtn');
+    if (queueBulkDeleteBtn) queueBulkDeleteBtn.addEventListener('click', bulkDelete);
+
+    const queueSelectAllBtn = document.getElementById('queueSelectAllBtn');
+    if (queueSelectAllBtn) queueSelectAllBtn.addEventListener('click', queueSelectAllVisible);
+
+    const queueSelectNoneBtn = document.getElementById('queueSelectNoneBtn');
+    if (queueSelectNoneBtn) queueSelectNoneBtn.addEventListener('click', queueSelectNone);
+
+    const queueInvertBtn = document.getElementById('queueInvertBtn');
+    if (queueInvertBtn) queueInvertBtn.addEventListener('click', queueInvertSelection);
+
+    const queueStatusFilter = document.getElementById('queueStatusFilter');
+    if (queueStatusFilter) queueStatusFilter.addEventListener('change', filterQueueItems);
+
+    const queueSearchFilter = document.getElementById('queueSearchFilter');
+    if (queueSearchFilter) queueSearchFilter.addEventListener('input', filterQueueItems);
+
+    const queueSortBy = document.getElementById('queueSortBy');
+    if (queueSortBy) queueSortBy.addEventListener('change', filterQueueItems);
+
+    const clearQueueFilters = document.getElementById('clearQueueFilters');
+    if (clearQueueFilters) clearQueueFilters.addEventListener('click', () => {
         document.getElementById('queueStatusFilter').value = 'all';
         document.getElementById('queueSearchFilter').value = '';
         document.getElementById('queueSortBy').value = 'id';
         filterQueueItems();
     });
 
-    document.getElementById('resultFilter').addEventListener('change', () => {
+    const resultFilter = document.getElementById('resultFilter');
+    if (resultFilter) resultFilter.addEventListener('change', () => {
         const term = document.getElementById('searchTerm').value.trim();
         if (term) performSearchAndBuild();
     });
 
-    menuToggle.addEventListener('click', () => {
-        rightPanel.classList.remove('open-drawer');
-        leftSidebar.classList.toggle('open-drawer');
-        layoutOverlay.classList.toggle('active', leftSidebar.classList.contains('open-drawer'));
-    });
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            rightPanel.classList.remove('open-drawer');
+            leftSidebar.classList.toggle('open-drawer');
+            layoutOverlay.classList.toggle('active', leftSidebar.classList.contains('open-drawer'));
+        });
+    }
 
-    propsToggle.addEventListener('click', () => {
-        leftSidebar.classList.remove('open-drawer');
-        rightPanel.classList.toggle('open-drawer');
-        layoutOverlay.classList.toggle('active', rightPanel.classList.contains('open-drawer'));
-    });
+    if (propsToggle) {
+        propsToggle.addEventListener('click', () => {
+            leftSidebar.classList.remove('open-drawer');
+            rightPanel.classList.toggle('open-drawer');
+            layoutOverlay.classList.toggle('active', rightPanel.classList.contains('open-drawer'));
+        });
+    }
 
-    layoutOverlay.addEventListener('click', closeAllDrawers);
+    if (layoutOverlay) layoutOverlay.addEventListener('click', closeAllDrawers);
 }
 
 // ============================================================
-//  AUTH LOGIC
+//  USER MANAGEMENT
 // ============================================================
-async function signup() {
-    const username = document.getElementById('signupUsername').value;
-    const password = document.getElementById('signupPassword').value;
+async function loadUsersList() {
     try {
-        await apiCall('/auth/signup', 'POST', { username, password });
-        showToast('Signup successful! Please login.');
-        document.getElementById('switchToLogin').click();
-    } catch (e) {
-        showToast(e.message, true);
-    }
-}
-
-async function login() {
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    try {
-        const res = await apiCall('/auth/login', 'POST', { username, password });
-        if (res.success) {
-            checkAuthStatus();
-        }
-    } catch (e) {
-        showToast('Login failed', true);
-    }
-}
-
-async function logout() {
-    await apiCall('/auth/logout', 'POST');
-    checkAuthStatus();
-}
-
-async function checkAuthStatus() {
-    try {
-        const res = await apiCall('/auth/status');
-        if (res.logged_in) {
-            document.getElementById('authOverlay').style.display = 'none';
-            document.getElementById('userNameDisplay').textContent = res.user.username;
-            if (res.user.role === 'admin') {
-                document.getElementById('adminTabHead').style.display = 'flex';
-            } else {
-                document.getElementById('adminTabHead').style.display = 'none';
-            }
-        } else {
-            document.getElementById('authOverlay').style.display = 'flex';
-        }
-    } catch (e) {
-        document.getElementById('authOverlay').style.display = 'flex';
-    }
-}
-
-async function loadUsers() {
-    try {
-        const res = await apiCall('/users');
+        const res = await loadUsers();
         const tbody = document.getElementById('userTableBody');
-        tbody.innerHTML = res.users.map(u => `
-            <tr>
-                <td>${u.id}</td>
-                <td>${escapeHtml(u.username)}</td>
-                <td>${u.role}</td>
-                <td>${u.created_at}</td>
-                <td>
-                    ${u.role !== 'admin' ? `<button onclick="deleteUser(${u.id})" class="btn-sm btn-danger"><i class="fas fa-trash"></i></button>` : ''}
-                </td>
-            </tr>
-        `).join('');
+        if (tbody) {
+            tbody.innerHTML = res.users.map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td>${escapeHtml(u.username)}</td>
+                    <td>${u.role}</td>
+                    <td>${u.created_at}</td>
+                    <td>
+                        ${u.role !== 'admin' ? `<button onclick="handleDeleteUser(${u.id})" class="btn-sm btn-danger" aria-label="Delete User"><i class="fas fa-trash"></i></button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
     } catch (e) {
         showToast('Failed to load users', true);
     }
 }
 
-window.deleteUser = async (id) => {
+window.handleDeleteUser = async (id) => {
     if (confirm('Are you sure you want to delete this user?')) {
-        await apiCall('/users', 'DELETE', { id });
-        loadUsers();
+        await deleteUser(id);
+        loadUsersList();
     }
 };
 
 // ============================================================
 //  BOOT
 // ============================================================
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+    const status = await checkAuthStatus();
+    if (!status.logged_in) {
+        window.location.href = 'index.html';
+        return;
+    }
+
+    document.getElementById('userNameDisplay').textContent = status.user.username;
+    if (status.user.role === 'admin') {
+        const adminTab = document.getElementById('adminTabHead');
+        if (adminTab) adminTab.style.display = 'flex';
+    }
+
     initAudioPlayer();
     initTabs();
     initEventBindings();
-    checkAuthStatus();
     performSearchAndBuild();
     loadQueue();
     setInterval(loadQueue, 15000);

@@ -1,7 +1,15 @@
 <?php
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../models/DownloadModel.php';
 
 class DownloadController extends BaseController {
+    private $downloadModel;
+
+    public function __construct() {
+        parent::__construct();
+        $this->downloadModel = new DownloadModel();
+    }
+
     public function add() {
         $this->checkAuth();
         $params = $this->getParams();
@@ -19,10 +27,7 @@ class DownloadController extends BaseController {
         $addedCount = 0;
 
         foreach ($trackIds as $tid) {
-            $this->db->query("INSERT INTO download_queue (trackId, status, quality) VALUES (:tid, 'pending', :qual)", [
-                ':tid' => $tid,
-                ':qual' => $quality
-            ]);
+            $this->downloadModel->addToQueue($tid, $quality);
             $addedCount++;
         }
 
@@ -31,15 +36,9 @@ class DownloadController extends BaseController {
 
     public function queue() {
         $this->checkAuth();
-        $res = $this->db->query("SELECT * FROM download_queue ORDER BY addedAt DESC");
-        $items = [];
-        while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-            // In a real scenario, we'd join with tracks table to get more info
-            $items[] = array_merge($row, [
-                'download_id' => $row['id'],
-                'download_status' => $row['status']
-            ]);
-        }
+        $params = $this->getParams();
+        $limit = $params['limit'] ?? 500;
+        $items = $this->downloadModel->getQueue($limit);
         $this->respond(['items' => $items]);
     }
 
@@ -49,33 +48,25 @@ class DownloadController extends BaseController {
         $ids = is_array($params['id']) ? $params['id'] : explode(',', $params['id']);
         $status = $params['status'] ?? 'pending';
 
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql = "UPDATE download_queue SET status = ? WHERE id IN ($placeholders)";
-
-        $stmt = $this->db->getConnection()->prepare($sql);
-        $stmt->bindValue(1, $status);
-        foreach ($ids as $i => $id) {
-            $stmt->bindValue($i + 2, $id, SQLITE3_INTEGER);
-        }
-        $stmt->execute();
-
-        $this->respond(['success' => true, 'updated_count' => count($ids)]);
+        $updatedCount = $this->downloadModel->updateStatus($ids, $status);
+        $this->respond(['success' => true, 'updated_count' => $updatedCount]);
     }
 
     public function delete() {
         $this->checkAuth();
         $params = $this->getParams();
-        $ids = is_array($params['id']) ? $params['id'] : explode(',', $params['id']);
 
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql = "DELETE FROM download_queue WHERE id IN ($placeholders)";
-
-        $stmt = $this->db->getConnection()->prepare($sql);
-        foreach ($ids as $i => $id) {
-            $stmt->bindValue($i + 1, $id, SQLITE3_INTEGER);
+        if (isset($params['status'])) {
+            $this->downloadModel->deleteByStatus($params['status']);
+            $this->respond(['success' => true]);
         }
-        $stmt->execute();
 
-        $this->respond(['success' => true, 'deleted_count' => count($ids)]);
+        $ids = is_array($params['id'] ?? null) ? $params['id'] : (isset($params['id']) ? explode(',', $params['id']) : []);
+        if (empty($ids)) {
+             $this->respond(['error' => 'No IDs provided'], 400);
+        }
+
+        $deletedCount = $this->downloadModel->delete($ids);
+        $this->respond(['success' => true, 'deleted_count' => $deletedCount]);
     }
 }

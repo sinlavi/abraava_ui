@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>localhost &raquo; iTunes_Catalog | phpMyAdmin Core Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<!-- Mobile Header -->
+<div class="mobile-header-bar">
+    <button class="menu-toggle-btn" id="menuToggle" aria-label="Open Menu"><i class="fas fa-bars"></i></button>
+    <span class="header-title">localhost &raquo; iTunes</span>
+    <button class="props-toggle-btn" id="propsToggle" aria-label="Open Information Panel"><i class="fas fa-info-circle"></i></button>
+</div>
+
+<div class="layout-overlay" id="layoutOverlay"></div>
+
+<!-- Main Layout -->
+<div class="pmah-layout">
+    <!-- Left Nav -->
+    <div class="left-nav" id="leftSidebar">
+        <div class="left-header">
+            <i class="fas fa-server"></i>
+            <span>iTunes_Catalog</span>
+            <span class="badge" id="treeTotalCount">0 items</span>
+        </div>
+        <div class="search-panel">
+            <input type="text" id="searchTerm" placeholder="Search criteria..." value="Pink Floyd" />
+            <div class="search-row">
+                <select id="entityType">
+                    <option value="musicArtist,album,song">All Types</option>
+                    <option value="musicArtist">Artists</option>
+                    <option value="album">Albums</option>
+                    <option value="song">Tracks</option>
+                </select>
+                <select id="resultFilter">
+                    <option value="all">All Results</option>
+                    <option value="artist">Artists Only</option>
+                    <option value="collection">Albums Only</option>
+                    <option value="track">Tracks Only</option>
+                </select>
+            </div>
+            <button id="doSearchBtn"><i class="fas fa-search"></i> Query Database</button>
+        </div>
+        <div class="tree-container" id="treeContainer">
+            <div class="empty-msg"><i class="fas fa-search"></i> Execute query above to construct tree nodes.</div>
+        </div>
+        <div id="treeBulkBar" class="bulk-bar" style="display:none;">
+            <i class="fas fa-check-square"></i> <span id="treeSelectedCount">0</span> selected
+            <button id="treeBulkAddBtn" class="btn-sm"><i class="fas fa-plus"></i> Import</button>
+            <button id="treeSelectAllBtn" class="btn-sm btn-primary"><i class="fas fa-check-double"></i> All</button>
+            <button id="treeSelectNoneBtn" class="btn-sm"><i class="fas fa-times"></i> Clear</button>
+            <button id="treeExpandAllBtn" class="btn-sm"><i class="fas fa-expand"></i> Expand</button>
+            <button id="treeCollapseAllBtn" class="btn-sm"><i class="fas fa-compress"></i> Collapse</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="tabs">
+            <div class="tab active" data-tab="queue"><i class="fas fa-tasks"></i> Operations Queue <span class="tab-badge" id="queueTabBadge">0</span></div>
+            <div class="tab" data-tab="browse" id="browseTabHead"><i class="fas fa-table"></i> Browse Element</div>
+            <div class="tab" data-tab="stats"><i class="fas fa-chart-bar"></i> Statistics</div>
+            <div class="tab" data-tab="admin" id="adminTabHead" style="display:none;"><i class="fas fa-user-shield"></i> Admin</div>
+            <div style="margin-left:auto; display:flex; align-items:center; padding-right:10px;">
+                <span id="userNameDisplay" style="margin-right:10px; font-weight:bold; color:#235a81;"></span>
+                <button id="logoutBtn" class="btn-sm" aria-label="Logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+
+        <!-- Queue Tab -->
+        <div id="queue-tab" class="tab-pane active-pane">
+            <div class="queue-stats">
+                <span><i class="fas fa-database"></i> <span id="queueStats">Loading...</span></span>
+                <div class="stat-group">
+                    <span class="stat-item"><i class="fas fa-clock"></i> Pending: <strong id="statPending">0</strong></span>
+                    <span class="stat-item"><i class="fas fa-spinner fa-pulse"></i> Downloading: <strong id="statDownloading">0</strong></span>
+                    <span class="stat-item"><i class="fas fa-pause"></i> Paused: <strong id="statPaused">0</strong></span>
+                    <span class="stat-item"><i class="fas fa-check-circle"></i> Completed: <strong id="statCompleted">0</strong></span>
+                    <span class="stat-item"><i class="fas fa-exclamation-triangle"></i> Failed: <strong id="statFailed">0</strong></span>
+                </div>
+            </div>
+            <div class="filter-bar">
+                <label><i class="fas fa-filter"></i> Status:</label>
+                <select id="queueStatusFilter">
+                    <option value="pending">Pending</option>
+                    <option value="downloading">Downloading</option>
+                    <option value="paused">Paused</option>
+                    <option value="completed">Completed</option>
+                    <option value="failed">Failed</option>
+                    <option value="stopped">Stopped</option>
+                    <option value="all" selected>All</option>
+                </select>
+                <label><i class="fas fa-search"></i> Search:</label>
+                <input type="text" id="queueSearchFilter" placeholder="Track or artist..." style="width:140px;" />
+                <label><i class="fas fa-sort"></i> Sort:</label>
+                <select id="queueSortBy">
+                    <option value="id">ID</option>
+                    <option value="status">Status</option>
+                    <option value="track">Track</option>
+                    <option value="added">Added</option>
+                </select>
+                <span id="queueFilterCount" class="filter-count">Showing: 0</span>
+                <button id="clearQueueFilters" class="btn-sm"><i class="fas fa-undo"></i> Reset</button>
+                <button id="exportQueueBtn" class="btn-sm btn-primary"><i class="fas fa-file-export"></i> Export</button>
+            </div>
+            <div class="toolbar">
+                <div>
+                    <button id="refreshQueueBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    <button id="clearFailedBtn" class="btn-danger"><i class="fas fa-trash-alt"></i> Clear Failed</button>
+                    <button id="retryFailedBtn" class="btn-warning"><i class="fas fa-redo"></i> Retry Failed</button>
+                    <button id="queueSelectAllBtn" class="btn-primary"><i class="fas fa-check-double"></i> Select All</button>
+                    <button id="queueSelectNoneBtn" class="btn"><i class="fas fa-times"></i> Deselect</button>
+                    <button id="queueInvertBtn" class="btn"><i class="fas fa-exchange-alt"></i> Invert</button>
+                </div>
+                <div id="queueBulkBar" style="display:none; background:#fff3cd; padding:2px 8px; border:1px solid #ffeeba; align-items:center; gap:4px; border-radius:2px;">
+                    <span><i class="fas fa-layer-group"></i> <span id="queueSelectedCount">0</span> selected</span>
+                    <button id="queueBulkStartBtn" class="btn-sm btn-success" aria-label="Start Selected"><i class="fas fa-play"></i></button>
+                    <button id="queueBulkPauseBtn" class="btn-sm btn-warning" aria-label="Pause Selected"><i class="fas fa-pause"></i></button>
+                    <button id="queueBulkResumeBtn" class="btn-sm btn-primary" aria-label="Resume Selected"><i class="fas fa-redo"></i></button>
+                    <button id="queueBulkStopBtn" class="btn-sm btn-danger" aria-label="Stop Selected"><i class="fas fa-stop"></i></button>
+                    <button id="queueBulkRetryBtn" class="btn-sm" aria-label="Retry Selected"><i class="fas fa-sync"></i></button>
+                    <button id="queueBulkDeleteBtn" class="btn-sm btn-danger" aria-label="Delete Selected"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            <div class="table-wrapper" id="queueTableWrapper">
+                <table class="data-table" id="queueTable">
+                    <thead>
+                    <tr>
+                        <th class="checkbox-col"><input type="checkbox" id="queueSelectAll" aria-label="Select All Items" /></th>
+                        <th>ID</th>
+                        <th>Track</th>
+                        <th>Artist</th>
+                        <th>Quality</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                        <th>Mirrors</th>
+                        <th>Info</th>
+                    </tr>
+                    </thead>
+                    <tbody id="queueBody">
+                    <tr><td colspan="9" class="empty-msg"><i class="fas fa-spinner fa-pulse"></i> Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Browse Tab -->
+        <div id="browse-tab" class="tab-pane">
+            <div id="browseWorkspace" style="overflow-y:auto; flex:1; display:flex; flex-direction:column;">
+                <div class="empty-msg" style="margin-top:60px;">
+                    <i class="fas fa-table fa-2x" style="color:#235a81; margin-bottom:10px;"></i><br />
+                    No relational database element selected for inspection.<br />Select any row item from the left hierarchy node array to query its details.
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Tab -->
+        <div id="stats-tab" class="tab-pane">
+            <div id="statsWorkspace" style="overflow-y:auto; flex:1; padding:12px;">
+                <div class="empty-msg"><i class="fas fa-spinner fa-pulse"></i> Loading statistics...</div>
+            </div>
+        </div>
+
+        <!-- Admin Tab -->
+        <div id="admin-tab" class="tab-pane">
+            <div id="adminWorkspace" style="overflow-y:auto; flex:1; padding:12px;">
+                <div class="pma-header"><h3><i class="fas fa-users"></i> User Management</h3></div>
+                <div style="padding:10px;">
+                    <table class="data-table" id="userTable">
+                        <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Created At</th><th>Action</th></tr></thead>
+                        <tbody id="userTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="pma-header"><h3><i class="fas fa-database"></i> Database Management</h3></div>
+                <div style="padding:10px;">
+                    <button class="btn btn-danger" onclick="alert('Not implemented')"><i class="fas fa-trash"></i> Clear Request Cache</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-properties" id="rightPanel">
+        <div class="props-card"><div class="empty-msg"><i class="fas fa-info-circle"></i> No node selected.</div></div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast-message"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+        <h3 id="modalTitle">Confirm</h3>
+        <div id="modalBody">Are you sure?</div>
+        <div class="modal-actions">
+            <button id="modalCancelBtn" class="btn">Cancel</button>
+            <button id="modalConfirmBtn" class="btn btn-primary">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== AUDIO PLAYER ===== -->
+<div class="audio-player-bar" id="audioPlayerBar">
+    <div class="ap-artwork" id="apArtwork"><i class="fas fa-music"></i></div>
+    <div class="ap-info">
+        <div class="ap-title" id="apTitle">No track loaded</div>
+        <div class="ap-artist" id="apArtist">—</div>
+    </div>
+    <div class="ap-controls">
+        <button id="apPrevBtn" title="Previous" aria-label="Previous Track"><i class="fas fa-step-backward"></i></button>
+        <button class="ap-play-btn" id="apPlayBtn" title="Play / Pause" aria-label="Play or Pause"><i class="fas fa-play"></i></button>
+        <button id="apNextBtn" title="Next" aria-label="Next Track"><i class="fas fa-step-forward"></i></button>
+    </div>
+    <div class="ap-progress-wrap">
+        <span class="ap-time" id="apCurrentTime">0:00</span>
+        <input type="range" id="apProgress" min="0" max="1000" value="0" aria-label="Seek track" />
+        <span class="ap-time" id="apDuration">0:00</span>
+    </div>
+    <div class="ap-volume-wrap">
+        <i class="fas fa-volume-up"></i>
+        <input type="range" id="apVolume" min="0" max="100" value="80" aria-label="Volume control" />
+    </div>
+    <button class="ap-close-btn" id="apCloseBtn" title="Close player" aria-label="Close Player"><i class="fas fa-times"></i></button>
+</div>
+
+<script src="assets/js/api.js"></script>
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
