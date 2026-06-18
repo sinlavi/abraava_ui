@@ -1,14 +1,18 @@
 <?php
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../models/UserModel.php';
 
 class UserController extends BaseController {
+    private $userModel;
+
+    public function __construct() {
+        parent::__construct();
+        $this->userModel = new UserModel();
+    }
+
     public function list() {
         $this->checkAdmin();
-        $res = $this->db->query("SELECT id, username, role, created_at FROM users");
-        $users = [];
-        while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-            $users[] = $row;
-        }
+        $users = $this->userModel->getAll();
         $this->respond(['users' => $users]);
     }
 
@@ -18,8 +22,7 @@ class UserController extends BaseController {
         $id = $params['id'] ?? null;
         if (!$id) $this->respond(['error' => 'Missing ID'], 400);
 
-        $this->db->query("DELETE FROM users WHERE id = :id", [':id' => $id]);
+        $this->userModel->delete($id);
         $this->respond(['success' => true]);
     }
-
 }

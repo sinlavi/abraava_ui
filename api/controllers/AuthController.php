@@ -1,7 +1,15 @@
 <?php
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../models/UserModel.php';
 
 class AuthController extends BaseController {
+    private $userModel;
+
+    public function __construct() {
+        parent::__construct();
+        $this->userModel = new UserModel();
+    }
+
     public function signup() {
         $params = $this->getParams();
         $username = $params['username'] ?? '';
@@ -11,13 +19,8 @@ class AuthController extends BaseController {
             $this->respond(['error' => 'Username and password are required'], 400);
         }
 
-        $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
         try {
-            $this->db->query("INSERT INTO users (username, password, role) VALUES (:username, :password, 'user')", [
-                ':username' => $username,
-                ':password' => $hashedPassword
-            ]);
+            $this->userModel->create($username, $password);
             $this->respond(['success' => true, 'message' => 'User created successfully']);
         } catch (Exception $e) {
             $this->respond(['error' => 'Username already exists'], 400);
@@ -29,8 +32,7 @@ class AuthController extends BaseController {
         $username = $params['username'] ?? '';
         $password = $params['password'] ?? '';
 
-        $res = $this->db->query("SELECT * FROM users WHERE username = :username", [':username' => $username]);
-        $user = $res->fetchArray(SQLITE3_ASSOC);
+        $user = $this->userModel->findByUsername($username);
 
         if ($user && password_verify($password, $user['password'])) {
             session_start();
