@@ -1,25 +1,29 @@
 <?php
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../models/iTunesEntity.php';
+require_once __DIR__ . '/../models/User.php';
 
 class DatabaseController extends BaseController {
+    private $itunesModel;
+    private $userModel;
+
+    public function __construct() {
+        parent::__construct();
+        $this->itunesModel = new iTunesEntity();
+        $this->userModel = new User();
+    }
+
     public function stats() {
         $this->checkAdmin();
-        $trackCount = $this->db->getConnection()->querySingle("SELECT COUNT(*) FROM tracks");
-        $artistCount = $this->db->getConnection()->querySingle("SELECT COUNT(*) FROM artists");
-        $albumCount = $this->db->getConnection()->querySingle("SELECT COUNT(*) FROM collections");
-        $userCount = $this->db->getConnection()->querySingle("SELECT COUNT(*) FROM users");
-
-        $this->respond([
-            'track_count' => $trackCount,
-            'artist_count' => $artistCount,
-            'album_count' => $albumCount,
-            'user_count' => $userCount,
-            'db_size_bytes' => filesize(__DIR__ . '/../../itunes.db')
-        ]);
+        $stats = $this->itunesModel->getStats();
+        $stats['user_count'] = $this->userModel->count();
+        $stats['db_size_bytes'] = filesize(__DIR__ . '/../../itunes.db');
+        $this->respond($stats);
     }
 
     public function manageData() {
-        // Implementation for general data management (e.g., clearing cache, bulk deletions)
-        $this->respond(['message' => 'Data management feature to be implemented']);
+        $this->checkAdmin();
+        $this->db->query("DELETE FROM requestCache");
+        $this->respond(['message' => 'Request cache cleared successfully']);
     }
 }
