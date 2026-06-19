@@ -1,44 +1,73 @@
 <?php
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../models/Download.php';
 
 class DownloadController extends BaseController {
+    private $downloadModel;
+    private const ITUNES_LOOKUP_API = 'https://itunes.apple.com/lookup';
+
+    public function __construct() {
+        parent::__construct();
+        $this->downloadModel = new Download();
+    }
+
     public function add() {
         $this->checkAuth();
         $params = $this->getParams();
-        $trackIds = [];
-
-        if (!empty($params['trackId'])) {
-            $trackIds = is_array($params['trackId']) ? $params['trackId'] : explode(',', $params['trackId']);
-        }
-
-        if (empty($trackIds)) {
-            $this->respond(['error' => 'No tracks provided'], 400);
-        }
-
         $quality = $params['quality'] ?? '192';
         $addedCount = 0;
+        $skippedCount = 0;
 
-        foreach ($trackIds as $tid) {
-            $this->db->query("INSERT INTO download_queue (trackId, status, quality) VALUES (:tid, 'pending', :qual)", [
-                ':tid' => $tid,
-                ':qual' => $quality
-            ]);
-            $addedCount++;
+        $trackIds = [];
+
+        // Single track
+        if (!empty($params['trackId'])) {
+            $ids = is_array($params['trackId']) ? $params['trackId'] : explode(',', $params['trackId']);
+            $trackIds = array_merge($trackIds, $ids);
         }
 
-        $this->respond(['success' => true, 'added_count' => $addedCount]);
+        // Expand Album
+        if (!empty($params['albumId'])) {
+            $albumIds = is_array($params['albumId']) ? $params['albumId'] : explode(',', $params['albumId']);
+            foreach ($albumIds as $aid) {
+                $tracks = $this->fetchChildTracks($aid, 'album');
+                $trackIds = array_merge($trackIds, $tracks);
+            }
+        }
+
+        // Expand Artist
+        if (!empty($params['artistId'])) {
+            $artistIds = is_array($params['artistId']) ? $params['artistId'] : explode(',', $params['artistId']);
+            foreach ($artistIds as $aid) {
+                $tracks = $this->fetchChildTracks($aid, 'artist');
+                $trackIds = array_merge($trackIds, $tracks);
+            }
+        }
+
+        $trackIds = array_unique($trackIds);
+
+        foreach ($trackIds as $tid) {
+            try {
+                $this->downloadModel->addToQueue($tid, $quality);
+                $addedCount++;
+            } catch (Exception $e) {
+                $skippedCount++;
+            }
+        }
+
+        $this->respond([
+            'success' => true,
+            'added_count' => $addedCount,
+            'skipped_count' => $skippedCount
+        ]);
     }
 
     public function queue() {
         $this->checkAuth();
-        $res = $this->db->query("SELECT * FROM download_queue ORDER BY addedAt DESC");
-        $items = [];
-        while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-            // In a real scenario, we'd join with tracks table to get more info
-            $items[] = array_merge($row, [
-                'download_id' => $row['id'],
-                'download_status' => $row['status']
-            ]);
+        $items = $this->downloadModel->getQueue();
+        foreach ($items as &$item) {
+            $item['download_id'] = $item['id'];
+            $item['download_status'] = $item['status'];
         }
         $this->respond(['items' => $items]);
     }
@@ -49,33 +78,45 @@ class DownloadController extends BaseController {
         $ids = is_array($params['id']) ? $params['id'] : explode(',', $params['id']);
         $status = $params['status'] ?? 'pending';
 
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql = "UPDATE download_queue SET status = ? WHERE id IN ($placeholders)";
-
-        $stmt = $this->db->getConnection()->prepare($sql);
-        $stmt->bindValue(1, $status);
-        foreach ($ids as $i => $id) {
-            $stmt->bindValue($i + 2, $id, SQLITE3_INTEGER);
-        }
-        $stmt->execute();
-
+        $this->downloadModel->updateStatus($ids, $status);
         $this->respond(['success' => true, 'updated_count' => count($ids)]);
     }
 
     public function delete() {
         $this->checkAuth();
         $params = $this->getParams();
-        $ids = is_array($params['id']) ? $params['id'] : explode(',', $params['id']);
-
-        $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql = "DELETE FROM download_queue WHERE id IN ($placeholders)";
-
-        $stmt = $this->db->getConnection()->prepare($sql);
-        foreach ($ids as $i => $id) {
-            $stmt->bindValue($i + 1, $id, SQLITE3_INTEGER);
+        if (!empty($params['status'])) {
+            $this->downloadModel->deleteByStatus($params['status']);
+            $this->respond(['success' => true]);
+        } else {
+            $ids = is_array($params['id']) ? $params['id'] : explode(',', $params['id']);
+            $this->downloadModel->delete($ids);
+            $this->respond(['success' => true, 'deleted_count' => count($ids)]);
         }
-        $stmt->execute();
+    }
 
-        $this->respond(['success' => true, 'deleted_count' => count($ids)]);
+    private function fetchChildTracks($id, $type) {
+        $entity = ($type === 'artist') ? 'song' : 'song'; // In both cases we want songs
+        $url = self::ITUNES_LOOKUP_API . "?id=$id&entity=$entity&limit=200";
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => true
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $data = json_decode($response, true);
+        $trackIds = [];
+        if (!empty($data['results'])) {
+            foreach ($data['results'] as $res) {
+                if (($res['wrapperType'] ?? '') === 'track') {
+                    $trackIds[] = $res['trackId'];
+                }
+            }
+        }
+        return $trackIds;
     }
 }

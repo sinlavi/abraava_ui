@@ -1,9 +1,16 @@
 <?php
 require_once __DIR__ . '/BaseController.php';
+require_once __DIR__ . '/../models/iTunesEntity.php';
 
 class iTunesController extends BaseController {
     private const ITUNES_SEARCH_API = 'https://itunes.apple.com/search';
     private const ITUNES_LOOKUP_API = 'https://itunes.apple.com/lookup';
+    private $itunesModel;
+
+    public function __construct() {
+        parent::__construct();
+        $this->itunesModel = new iTunesEntity();
+    }
 
     public function search() {
         $this->checkAuth();
@@ -35,11 +42,10 @@ class iTunesController extends BaseController {
 
         if ($response) {
             $this->saveEntities($response['results'] ?? []);
-            // Attach mirrors and lyrics for tracks
             foreach ($response['results'] as &$item) {
                 if (($item['wrapperType'] ?? '') === 'track') {
-                    $item['mirrorUrls'] = $this->getMirrors('track', $item['trackId']);
-                    $item['lyrics'] = $this->getLyrics($item['trackId']);
+                    $item['mirrorUrls'] = $this->itunesModel->getMirrors('track', $item['trackId']);
+                    $item['lyrics'] = $this->itunesModel->getLyrics($item['trackId']);
                 }
             }
             $this->respond($response);
@@ -66,30 +72,12 @@ class iTunesController extends BaseController {
         foreach ($entities as $entity) {
             $type = $entity['wrapperType'] ?? '';
             if ($type === 'artist') {
-                $this->db->query("INSERT OR IGNORE INTO artists (artistId) VALUES (:id)", [':id' => $entity['artistId']]);
+                $this->itunesModel->saveArtist($entity['artistId']);
             } elseif ($type === 'collection') {
-                $this->db->query("INSERT OR IGNORE INTO collections (collectionId) VALUES (:id)", [':id' => $entity['collectionId']]);
+                $this->itunesModel->saveCollection($entity['collectionId']);
             } elseif ($type === 'track') {
-                $this->db->query("INSERT OR IGNORE INTO tracks (trackId) VALUES (:id)", [':id' => $entity['trackId']]);
+                $this->itunesModel->saveTrack($entity['trackId']);
             }
         }
-    }
-
-    private function getMirrors($type, $id) {
-        $res = $this->db->query("SELECT * FROM entityMirrors WHERE entityType = :t AND entityId = :id", [
-            ':t' => $type,
-            ':id' => $id
-        ]);
-        $mirrors = [];
-        while ($row = $res->fetchArray(SQLITE3_ASSOC)) {
-            $mirrors[$row['urlType']] = ['url' => $row['mirrorUrl'], 'quality' => $row['quality']];
-        }
-        return $mirrors;
-    }
-
-    private function getLyrics($id) {
-        $res = $this->db->query("SELECT lyrics FROM tracks WHERE trackId = :id", [':id' => $id]);
-        $row = $res->fetchArray(SQLITE3_ASSOC);
-        return $row ? json_decode($row['lyrics'], true) : null;
     }
 }
