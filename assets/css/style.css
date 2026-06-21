@@ -557,6 +557,22 @@ body {
     word-break: break-all;
 }
 
+.user-create-form input,
+.user-create-form select {
+    padding: 3px 6px;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+    font-size: 10px;
+    height: 24px;
+    background: #fff;
+}
+
+.user-create-form input:focus,
+.user-create-form select:focus {
+    border-color: #235a81;
+    outline: none;
+}
+
 .status-badge {
     display: inline-block;
     padding: 1px 5px;
@@ -1080,6 +1096,15 @@ hr {
 .audio-player-bar .ap-close-btn:hover {
     color: #b50000;
     background: rgba(185, 0, 0, 0.08);
+}
+
+/* Accessibility focus styles */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+    outline: 2px solid #235a81;
+    outline-offset: 2px;
 }
 
 /* ---- responsive ---- */

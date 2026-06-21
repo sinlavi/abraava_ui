@@ -12,9 +12,9 @@
 
 <!-- Mobile Header -->
 <div class="mobile-header-bar">
-    <button class="menu-toggle-btn" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <button class="menu-toggle-btn" id="menuToggle" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button>
     <span class="header-title">localhost &raquo; iTunes</span>
-    <button class="props-toggle-btn" id="propsToggle"><i class="fas fa-info-circle"></i></button>
+    <button class="props-toggle-btn" id="propsToggle" aria-label="Toggle properties panel"><i class="fas fa-info-circle"></i></button>
 </div>
 
 <div class="layout-overlay" id="layoutOverlay"></div>
@@ -47,15 +47,15 @@
             <span class="badge" id="treeTotalCount">0 items</span>
         </div>
         <div class="search-panel">
-            <input type="text" id="searchTerm" placeholder="Search criteria..." value="Pink Floyd" />
+            <input type="text" id="searchTerm" placeholder="Search criteria..." value="Pink Floyd" aria-label="Search term" />
             <div class="search-row">
-                <select id="entityType">
+                <select id="entityType" aria-label="Entity type">
                     <option value="musicArtist,album,song">All Types</option>
                     <option value="musicArtist">Artists</option>
                     <option value="album">Albums</option>
                     <option value="song">Tracks</option>
                 </select>
-                <select id="resultFilter">
+                <select id="resultFilter" aria-label="Result filter">
                     <option value="all">All Results</option>
                     <option value="artist">Artists Only</option>
                     <option value="collection">Albums Only</option>
@@ -103,7 +103,7 @@
                 </div>
             </div>
             <div class="filter-bar">
-                <label><i class="fas fa-filter"></i> Status:</label>
+                <label for="queueStatusFilter"><i class="fas fa-filter"></i> Status:</label>
                 <select id="queueStatusFilter">
                     <option value="pending">Pending</option>
                     <option value="downloading">Downloading</option>
@@ -113,9 +113,9 @@
                     <option value="stopped">Stopped</option>
                     <option value="all" selected>All</option>
                 </select>
-                <label><i class="fas fa-search"></i> Search:</label>
+                <label for="queueSearchFilter"><i class="fas fa-search"></i> Search:</label>
                 <input type="text" id="queueSearchFilter" placeholder="Track or artist..." style="width:140px;" />
-                <label><i class="fas fa-sort"></i> Sort:</label>
+                <label for="queueSortBy"><i class="fas fa-sort"></i> Sort:</label>
                 <select id="queueSortBy">
                     <option value="id">ID</option>
                     <option value="status">Status</option>
@@ -188,6 +188,20 @@
         <div id="admin-tab" class="tab-pane">
             <div id="adminWorkspace" style="overflow-y:auto; flex:1; padding:12px;">
                 <div class="pma-header"><h3><i class="fas fa-users"></i> User Management</h3></div>
+
+                <div class="pma-doc-box" style="margin: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 8px;"><i class="fas fa-user-plus"></i> Create New User</div>
+                    <div class="user-create-form" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <input type="text" id="adminNewUsername" placeholder="Username" style="width: 150px;" aria-label="New username" />
+                        <input type="password" id="adminNewPassword" placeholder="Password" style="width: 150px;" aria-label="New password" />
+                        <select id="adminNewRole" aria-label="New user role">
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button id="adminCreateUserBtn" class="btn btn-success"><i class="fas fa-plus"></i> Add User</button>
+                    </div>
+                </div>
+
                 <div style="padding:10px;">
                     <table class="data-table" id="userTable">
                         <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Created At</th><th>Action</th></tr></thead>
@@ -196,7 +210,7 @@
                 </div>
                 <div class="pma-header"><h3><i class="fas fa-database"></i> Database Management</h3></div>
                 <div style="padding:10px;">
-                    <button class="btn btn-danger" onclick="alert('Not implemented')"><i class="fas fa-trash"></i> Clear Request Cache</button>
+                    <button id="adminClearCacheBtn" class="btn btn-danger"><i class="fas fa-trash"></i> Clear Request Cache</button>
                 </div>
             </div>
         </div>
@@ -231,18 +245,18 @@
         <div class="ap-artist" id="apArtist">—</div>
     </div>
     <div class="ap-controls">
-        <button id="apPrevBtn" title="Previous (not implemented)"><i class="fas fa-step-backward"></i></button>
-        <button class="ap-play-btn" id="apPlayBtn" title="Play / Pause"><i class="fas fa-play"></i></button>
-        <button id="apNextBtn" title="Next (not implemented)"><i class="fas fa-step-forward"></i></button>
+        <button id="apPrevBtn" title="Previous (not implemented)" aria-label="Previous track"><i class="fas fa-step-backward"></i></button>
+        <button class="ap-play-btn" id="apPlayBtn" title="Play / Pause" aria-label="Play or pause"><i class="fas fa-play"></i></button>
+        <button id="apNextBtn" title="Next (not implemented)" aria-label="Next track"><i class="fas fa-step-forward"></i></button>
     </div>
     <div class="ap-progress-wrap">
         <span class="ap-time" id="apCurrentTime">0:00</span>
-        <input type="range" id="apProgress" min="0" max="1000" value="0" />
+        <input type="range" id="apProgress" min="0" max="1000" value="0" aria-label="Track progress" />
         <span class="ap-time" id="apDuration">0:00</span>
     </div>
     <div class="ap-volume-wrap">
-        <i class="fas fa-volume-up"></i>
-        <input type="range" id="apVolume" min="0" max="100" value="80" />
+        <i class="fas fa-volume-up" aria-hidden="true"></i>
+        <input type="range" id="apVolume" min="0" max="100" value="80" aria-label="Volume" />
     </div>
     <button class="ap-close-btn" id="apCloseBtn" title="Close player"><i class="fas fa-times"></i></button>
 </div>

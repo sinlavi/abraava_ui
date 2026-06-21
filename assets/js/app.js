@@ -1307,17 +1307,9 @@ function setSelectedMetadata(item) {
 // ============================================================
 function initTabs() {
     const tabs = document.querySelectorAll('.tab');
-    const panes = { queue: document.getElementById('queue-tab'), browse: document.getElementById('browse-tab'),
-        stats: document.getElementById('stats-tab') };
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            Object.values(panes).forEach(p => p.classList.remove('active-pane'));
-            panes[tabId].classList.add('active-pane');
-            if (tabId === 'queue') loadQueue();
-            if (tabId === 'stats') loadStats();
+            switchTab(tab.dataset.tab);
         });
     });
 }
@@ -1356,6 +1348,8 @@ function initEventBindings() {
     document.getElementById('loginBtn').onclick = login;
     document.getElementById('signupBtn').onclick = signup;
     document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('adminCreateUserBtn').onclick = createUser;
+    document.getElementById('adminClearCacheBtn').onclick = clearCache;
 
     document.getElementById('doSearchBtn').addEventListener('click', performSearchAndBuild);
     document.getElementById('refreshQueueBtn').addEventListener('click', loadQueue);
@@ -1464,31 +1458,90 @@ async function checkAuthStatus() {
 }
 
 async function loadUsers() {
+    const tbody = document.getElementById('userTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-msg"><i class="fas fa-spinner fa-pulse"></i> Loading users...</td></tr>';
     try {
         const res = await apiCall('/users');
-        const tbody = document.getElementById('userTableBody');
+        if (!res.users || res.users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No users found.</td></tr>';
+            return;
+        }
         tbody.innerHTML = res.users.map(u => `
             <tr>
-                <td>${u.id}</td>
-                <td>${escapeHtml(u.username)}</td>
-                <td>${u.role}</td>
-                <td>${u.created_at}</td>
-                <td>
-                    ${u.role !== 'admin' ? `<button onclick="deleteUser(${u.id})" class="btn-sm btn-danger"><i class="fas fa-trash"></i></button>` : ''}
+                <td data-label="ID"><code>${u.id}</code></td>
+                <td data-label="Username"><strong>${escapeHtml(u.username)}</strong></td>
+                <td data-label="Role"><span class="status-badge ${u.role === 'admin' ? 'status-downloading' : 'status-queued'}">${u.role}</span></td>
+                <td data-label="Created At">${u.created_at}</td>
+                <td data-label="Action">
+                    <button onclick="deleteUser(${u.id})" class="btn-sm btn-danger" aria-label="Delete user ${escapeHtml(u.username)}"><i class="fas fa-trash-alt"></i></button>
                 </td>
             </tr>
         `).join('');
     } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-msg">⚠️ Error: ${e.message}</td></tr>`;
         showToast('Failed to load users', true);
     }
 }
 
-window.deleteUser = async (id) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-        await apiCall('/users', 'DELETE', { id });
+async function createUser() {
+    const usernameEl = document.getElementById('adminNewUsername');
+    const passwordEl = document.getElementById('adminNewPassword');
+    const roleEl = document.getElementById('adminNewRole');
+    const btn = document.getElementById('adminCreateUserBtn');
+
+    const username = usernameEl.value.trim();
+    const password = passwordEl.value.trim();
+    const role = roleEl.value;
+
+    if (!username || !password) {
+        showToast('Username and password are required', true);
+        return;
+    }
+
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Creating...';
+
+    try {
+        await apiCall('/users', 'POST', { username, password, role });
+        showToast(`✅ User "${username}" created successfully`);
+        usernameEl.value = '';
+        passwordEl.value = '';
         loadUsers();
+    } catch (e) {
+        showToast(e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+window.deleteUser = async (id) => {
+    const confirmed = await showModal('Delete User', `Are you sure you want to delete user ID ${id}?`);
+    if (!confirmed) return;
+    try {
+        await apiCall('/users', 'DELETE', { id });
+        showToast('🗑️ User deleted');
+        loadUsers();
+    } catch (e) {
+        showToast(e.message, true);
     }
 };
+
+async function clearCache() {
+    const confirmed = await showModal('Clear Cache', 'Are you sure you want to clear the request cache?');
+    if (!confirmed) return;
+    const btn = document.getElementById('adminClearCacheBtn');
+    btn.disabled = true;
+    try {
+        await apiCall('/database/clear-cache', 'POST');
+        showToast('✅ Request cache cleared');
+    } catch (e) {
+        showToast(e.message, true);
+    } finally {
+        btn.disabled = false;
+    }
+}
 
 // ============================================================
 //  BOOT
