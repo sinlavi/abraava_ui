@@ -12,9 +12,9 @@
 
 <!-- Mobile Header -->
 <div class="mobile-header-bar">
-    <button class="menu-toggle-btn" id="menuToggle"><i class="fas fa-bars"></i></button>
+    <button class="menu-toggle-btn" id="menuToggle" aria-label="Toggle Navigation Menu"><i class="fas fa-bars"></i></button>
     <span class="header-title">localhost &raquo; iTunes</span>
-    <button class="props-toggle-btn" id="propsToggle"><i class="fas fa-info-circle"></i></button>
+    <button class="props-toggle-btn" id="propsToggle" aria-label="Toggle Properties Panel"><i class="fas fa-info-circle"></i></button>
 </div>
 
 <div class="layout-overlay" id="layoutOverlay"></div>
@@ -189,6 +189,18 @@
             <div id="adminWorkspace" style="overflow-y:auto; flex:1; padding:12px;">
                 <div class="pma-header"><h3><i class="fas fa-users"></i> User Management</h3></div>
                 <div style="padding:10px;">
+                    <div style="margin-bottom: 15px; background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 2px;">
+                        <h4 style="margin-bottom: 8px; font-size: 10px; color: #235a81;">Add New User</h4>
+                        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <input type="text" id="adminNewUsername" placeholder="Username" style="font-size: 10px; padding: 4px; border: 1px solid #ccc; width: 120px;" />
+                            <input type="password" id="adminNewPassword" placeholder="Password" style="font-size: 10px; padding: 4px; border: 1px solid #ccc; width: 120px;" />
+                            <select id="adminNewRole" style="font-size: 10px; padding: 3px; border: 1px solid #ccc;">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button id="adminCreateUserBtn" class="btn btn-success btn-sm"><i class="fas fa-plus"></i> Create User</button>
+                        </div>
+                    </div>
                     <table class="data-table" id="userTable">
                         <thead><tr><th>ID</th><th>Username</th><th>Role</th><th>Created At</th><th>Action</th></tr></thead>
                         <tbody id="userTableBody"></tbody>
@@ -196,7 +208,7 @@
                 </div>
                 <div class="pma-header"><h3><i class="fas fa-database"></i> Database Management</h3></div>
                 <div style="padding:10px;">
-                    <button class="btn btn-danger" onclick="alert('Not implemented')"><i class="fas fa-trash"></i> Clear Request Cache</button>
+                    <button id="clearCacheBtn" class="btn btn-danger"><i class="fas fa-trash"></i> Clear Request Cache</button>
                 </div>
             </div>
         </div>
@@ -231,9 +243,9 @@
         <div class="ap-artist" id="apArtist">—</div>
     </div>
     <div class="ap-controls">
-        <button id="apPrevBtn" title="Previous (not implemented)"><i class="fas fa-step-backward"></i></button>
-        <button class="ap-play-btn" id="apPlayBtn" title="Play / Pause"><i class="fas fa-play"></i></button>
-        <button id="apNextBtn" title="Next (not implemented)"><i class="fas fa-step-forward"></i></button>
+        <button id="apPrevBtn" title="Previous (not implemented)" aria-label="Previous Track"><i class="fas fa-step-backward"></i></button>
+        <button class="ap-play-btn" id="apPlayBtn" title="Play / Pause" aria-label="Play or Pause"><i class="fas fa-play"></i></button>
+        <button id="apNextBtn" title="Next (not implemented)" aria-label="Next Track"><i class="fas fa-step-forward"></i></button>
     </div>
     <div class="ap-progress-wrap">
         <span class="ap-time" id="apCurrentTime">0:00</span>
@@ -244,7 +256,7 @@
         <i class="fas fa-volume-up"></i>
         <input type="range" id="apVolume" min="0" max="100" value="80" />
     </div>
-    <button class="ap-close-btn" id="apCloseBtn" title="Close player"><i class="fas fa-times"></i></button>
+    <button class="ap-close-btn" id="apCloseBtn" title="Close player" aria-label="Close Audio Player"><i class="fas fa-times"></i></button>
 </div>
 
 <script src="assets/js/app.js"></script>
