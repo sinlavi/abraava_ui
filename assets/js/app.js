@@ -439,6 +439,8 @@ function switchTab(target) {
     if (targetTab) targetTab.classList.add('active');
     Object.values(panes).forEach(p => p.classList.remove('active-pane'));
     if (panes[target]) panes[target].classList.add('active-pane');
+
+    if (target === 'queue') loadQueue();
     if (target === 'stats') loadStats();
     if (target === 'admin') loadUsers();
 }
@@ -1307,17 +1309,9 @@ function setSelectedMetadata(item) {
 // ============================================================
 function initTabs() {
     const tabs = document.querySelectorAll('.tab');
-    const panes = { queue: document.getElementById('queue-tab'), browse: document.getElementById('browse-tab'),
-        stats: document.getElementById('stats-tab') };
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            Object.values(panes).forEach(p => p.classList.remove('active-pane'));
-            panes[tabId].classList.add('active-pane');
-            if (tabId === 'queue') loadQueue();
-            if (tabId === 'stats') loadStats();
+            switchTab(tab.dataset.tab);
         });
     });
 }
@@ -1381,6 +1375,9 @@ function initEventBindings() {
     document.getElementById('queueSelectNoneBtn').addEventListener('click', queueSelectNone);
     document.getElementById('queueInvertBtn').addEventListener('click', queueInvertSelection);
 
+    document.getElementById('adminCreateUserBtn').addEventListener('click', adminCreateUser);
+    document.getElementById('clearCacheBtn').addEventListener('click', clearRequestCache);
+
     document.getElementById('queueStatusFilter').addEventListener('change', filterQueueItems);
     document.getElementById('queueSearchFilter').addEventListener('input', filterQueueItems);
     document.getElementById('queueSortBy').addEventListener('change', filterQueueItems);
@@ -1415,27 +1412,43 @@ function initEventBindings() {
 //  AUTH LOGIC
 // ============================================================
 async function signup() {
+    const btn = document.getElementById('signupBtn');
     const username = document.getElementById('signupUsername').value;
     const password = document.getElementById('signupPassword').value;
+    if (!username || !password) return showToast('Username and password required', true);
+
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
     try {
         await apiCall('/auth/signup', 'POST', { username, password });
         showToast('Signup successful! Please login.');
         document.getElementById('switchToLogin').click();
     } catch (e) {
         showToast(e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
     }
 }
 
 async function login() {
+    const btn = document.getElementById('loginBtn');
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
+    if (!username || !password) return showToast('Username and password required', true);
+
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
     try {
         const res = await apiCall('/auth/login', 'POST', { username, password });
         if (res.success) {
             checkAuthStatus();
         }
     } catch (e) {
-        showToast('Login failed', true);
+        showToast('Login failed: ' + e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
     }
 }
 
@@ -1463,18 +1476,71 @@ async function checkAuthStatus() {
     }
 }
 
+async function adminCreateUser() {
+    const usernameInput = document.getElementById('adminNewUsername');
+    const passwordInput = document.getElementById('adminNewPassword');
+    const roleInput = document.getElementById('adminNewRole');
+    const btn = document.getElementById('adminCreateUserBtn');
+
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+    const role = roleInput.value;
+
+    if (!username || !password) {
+        showToast('Username and password are required', true);
+        return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+
+    try {
+        await apiCall('/users', 'POST', { username, password, role });
+        showToast('User created successfully');
+        usernameInput.value = '';
+        passwordInput.value = '';
+        loadUsers();
+    } catch (e) {
+        showToast('Error creating user: ' + e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+    }
+}
+
+async function clearRequestCache() {
+    const confirmed = await showModal('Clear Cache', 'Are you sure you want to clear the request cache? This may slow down initial search results.');
+    if (!confirmed) return;
+
+    const btn = document.getElementById('clearCacheBtn');
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+
+    try {
+        await apiCall('/database/clear-cache', 'POST');
+        showToast('Cache cleared successfully');
+        if (document.querySelector('[data-tab="stats"].active')) loadStats();
+    } catch (e) {
+        showToast('Failed to clear cache: ' + e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+    }
+}
+
 async function loadUsers() {
     try {
         const res = await apiCall('/users');
         const tbody = document.getElementById('userTableBody');
+        if (!tbody) return;
         tbody.innerHTML = res.users.map(u => `
             <tr>
-                <td>${u.id}</td>
-                <td>${escapeHtml(u.username)}</td>
-                <td>${u.role}</td>
-                <td>${u.created_at}</td>
-                <td>
-                    ${u.role !== 'admin' ? `<button onclick="deleteUser(${u.id})" class="btn-sm btn-danger"><i class="fas fa-trash"></i></button>` : ''}
+                <td data-label="ID"><code>${u.id}</code></td>
+                <td data-label="Username"><strong>${escapeHtml(u.username)}</strong></td>
+                <td data-label="Role"><span class="status-badge ${u.role === 'admin' ? 'status-downloading' : 'status-pending'}">${u.role}</span></td>
+                <td data-label="Created At">${u.created_at}</td>
+                <td data-label="Action" class="action-buttons">
+                    ${u.role !== 'admin' ? `<button onclick="deleteUser(${u.id})" class="btn-sm btn-danger" title="Delete User"><i class="fas fa-trash"></i></button>` : '—'}
                 </td>
             </tr>
         `).join('');
@@ -1484,9 +1550,15 @@ async function loadUsers() {
 }
 
 window.deleteUser = async (id) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-        await apiCall('/users', 'DELETE', { id });
-        loadUsers();
+    const confirmed = await showModal('Delete User', `Are you sure you want to delete user ID ${id}? This action cannot be undone.`);
+    if (confirmed) {
+        try {
+            await apiCall('/users', 'DELETE', { id });
+            showToast('User deleted successfully');
+            loadUsers();
+        } catch (e) {
+            showToast('Failed to delete user: ' + e.message, true);
+        }
     }
 };
 
