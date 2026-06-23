@@ -23,7 +23,8 @@ $router->add('GET', '/download/queue', 'DownloadController@queue');
 $router->add('POST', '/download/update', 'DownloadController@update');
 $router->add('DELETE', '/download/delete', 'DownloadController@delete');
 
-// Stats and DB management (to be implemented)
+// Stats and DB management
 $router->add('GET', '/stats', 'DatabaseController@stats');
+$router->add('POST', '/database/clear-cache', 'DatabaseController@clearCache');
 
 $router->handleRequest();

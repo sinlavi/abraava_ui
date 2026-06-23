@@ -426,22 +426,6 @@ window.routeToInternalLink = async function(type, id) {
     }
 };
 
-function switchTab(target) {
-    const tabs = document.querySelectorAll('.tab');
-    const panes = {
-        queue: document.getElementById('queue-tab'),
-        browse: document.getElementById('browse-tab'),
-        stats: document.getElementById('stats-tab'),
-        admin: document.getElementById('admin-tab')
-    };
-    tabs.forEach(t => t.classList.remove('active'));
-    const targetTab = document.querySelector(`[data-tab="${target}"]`);
-    if (targetTab) targetTab.classList.add('active');
-    Object.values(panes).forEach(p => p.classList.remove('active-pane'));
-    if (panes[target]) panes[target].classList.add('active-pane');
-    if (target === 'stats') loadStats();
-    if (target === 'admin') loadUsers();
-}
 
 // ============================================================
 //  RENDER MIRROR BUTTONS (with play support)
@@ -1305,20 +1289,35 @@ function setSelectedMetadata(item) {
 // ============================================================
 //  INIT TABS
 // ============================================================
+function switchTab(tabId) {
+    const tabs = document.querySelectorAll('.tab');
+    const panes = {
+        queue: document.getElementById('queue-tab'),
+        browse: document.getElementById('browse-tab'),
+        stats: document.getElementById('stats-tab'),
+        admin: document.getElementById('admin-tab')
+    };
+
+    tabs.forEach(t => {
+        if (t.dataset.tab === tabId) t.classList.add('active');
+        else t.classList.remove('active');
+    });
+
+    Object.entries(panes).forEach(([id, pane]) => {
+        if (!pane) return;
+        if (id === tabId) pane.classList.add('active-pane');
+        else pane.classList.remove('active-pane');
+    });
+
+    if (tabId === 'queue') loadQueue();
+    if (tabId === 'stats') loadStats();
+    if (tabId === 'admin') loadUsers();
+}
+
 function initTabs() {
     const tabs = document.querySelectorAll('.tab');
-    const panes = { queue: document.getElementById('queue-tab'), browse: document.getElementById('browse-tab'),
-        stats: document.getElementById('stats-tab') };
     tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            Object.values(panes).forEach(p => p.classList.remove('active-pane'));
-            panes[tabId].classList.add('active-pane');
-            if (tabId === 'queue') loadQueue();
-            if (tabId === 'stats') loadStats();
-        });
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
 }
 
@@ -1356,6 +1355,24 @@ function initEventBindings() {
     document.getElementById('loginBtn').onclick = login;
     document.getElementById('signupBtn').onclick = signup;
     document.getElementById('logoutBtn').onclick = logout;
+
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    if (clearCacheBtn) {
+        clearCacheBtn.onclick = async () => {
+            const confirmed = await showModal('Clear Cache', 'Are you sure you want to clear the request cache?');
+            if (confirmed) {
+                clearCacheBtn.classList.add('btn-loading');
+                try {
+                    await apiCall('/database/clear-cache', 'POST');
+                    showToast('Cache cleared successfully');
+                } catch (e) {
+                    showToast('Failed to clear cache', true);
+                } finally {
+                    clearCacheBtn.classList.remove('btn-loading');
+                }
+            }
+        };
+    }
 
     document.getElementById('doSearchBtn').addEventListener('click', performSearchAndBuild);
     document.getElementById('refreshQueueBtn').addEventListener('click', loadQueue);
@@ -1415,20 +1432,26 @@ function initEventBindings() {
 //  AUTH LOGIC
 // ============================================================
 async function signup() {
+    const btn = document.getElementById('signupBtn');
     const username = document.getElementById('signupUsername').value;
     const password = document.getElementById('signupPassword').value;
+    btn.classList.add('btn-loading');
     try {
         await apiCall('/auth/signup', 'POST', { username, password });
         showToast('Signup successful! Please login.');
         document.getElementById('switchToLogin').click();
     } catch (e) {
         showToast(e.message, true);
+    } finally {
+        btn.classList.remove('btn-loading');
     }
 }
 
 async function login() {
+    const btn = document.getElementById('loginBtn');
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
+    btn.classList.add('btn-loading');
     try {
         const res = await apiCall('/auth/login', 'POST', { username, password });
         if (res.success) {
@@ -1436,6 +1459,8 @@ async function login() {
         }
     } catch (e) {
         showToast('Login failed', true);
+    } finally {
+        btn.classList.remove('btn-loading');
     }
 }
 
@@ -1484,9 +1509,15 @@ async function loadUsers() {
 }
 
 window.deleteUser = async (id) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-        await apiCall('/users', 'DELETE', { id });
-        loadUsers();
+    const confirmed = await showModal('Delete User', 'Are you sure you want to delete this user? This action cannot be undone.');
+    if (confirmed) {
+        try {
+            await apiCall('/users', 'DELETE', { id });
+            showToast('User deleted successfully');
+            loadUsers();
+        } catch (e) {
+            showToast('Failed to delete user', true);
+        }
     }
 };
 
