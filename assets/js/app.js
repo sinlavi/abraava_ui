@@ -439,6 +439,8 @@ function switchTab(target) {
     if (targetTab) targetTab.classList.add('active');
     Object.values(panes).forEach(p => p.classList.remove('active-pane'));
     if (panes[target]) panes[target].classList.add('active-pane');
+
+    if (target === 'queue') loadQueue();
     if (target === 'stats') loadStats();
     if (target === 'admin') loadUsers();
 }
@@ -842,6 +844,8 @@ async function addSingleItemToQueue(item) {
 }
 
 window.addAllToQueueByType = async function(type, id, nameHint) {
+    const btn = event?.currentTarget;
+    if (btn && btn.tagName === 'BUTTON') btn.classList.add('btn-loading');
     try {
         let payload = {};
         if (type === 'artist') payload.artistId = id;
@@ -857,6 +861,8 @@ window.addAllToQueueByType = async function(type, id, nameHint) {
         loadQueue();
     } catch (err) {
         showToast('❌ Error: ' + err.message, true);
+    } finally {
+        if (btn && btn.tagName === 'BUTTON') btn.classList.remove('btn-loading');
     }
 };
 
@@ -1307,17 +1313,9 @@ function setSelectedMetadata(item) {
 // ============================================================
 function initTabs() {
     const tabs = document.querySelectorAll('.tab');
-    const panes = { queue: document.getElementById('queue-tab'), browse: document.getElementById('browse-tab'),
-        stats: document.getElementById('stats-tab') };
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            Object.values(panes).forEach(p => p.classList.remove('active-pane'));
-            panes[tabId].classList.add('active-pane');
-            if (tabId === 'queue') loadQueue();
-            if (tabId === 'stats') loadStats();
+            switchTab(tab.dataset.tab);
         });
     });
 }
@@ -1408,6 +1406,17 @@ function initEventBindings() {
         layoutOverlay.classList.toggle('active', rightPanel.classList.contains('open-drawer'));
     });
 
+    document.getElementById('clearCacheBtn').addEventListener('click', async () => {
+        const confirmed = await showModal('Clear Cache', 'Are you sure you want to clear the request cache?');
+        if (!confirmed) return;
+        try {
+            await apiCall('/database/clear-cache', 'POST');
+            showToast('✅ Cache cleared');
+        } catch (e) {
+            showToast('❌ Failed to clear cache: ' + e.message, true);
+        }
+    });
+
     layoutOverlay.addEventListener('click', closeAllDrawers);
 }
 
@@ -1415,27 +1424,37 @@ function initEventBindings() {
 //  AUTH LOGIC
 // ============================================================
 async function signup() {
+    const btn = document.getElementById('signupBtn');
     const username = document.getElementById('signupUsername').value;
     const password = document.getElementById('signupPassword').value;
+
+    btn.classList.add('btn-loading');
     try {
         await apiCall('/auth/signup', 'POST', { username, password });
         showToast('Signup successful! Please login.');
         document.getElementById('switchToLogin').click();
     } catch (e) {
         showToast(e.message, true);
+    } finally {
+        btn.classList.remove('btn-loading');
     }
 }
 
 async function login() {
+    const btn = document.getElementById('loginBtn');
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
+
+    btn.classList.add('btn-loading');
     try {
         const res = await apiCall('/auth/login', 'POST', { username, password });
         if (res.success) {
-            checkAuthStatus();
+            await checkAuthStatus();
         }
     } catch (e) {
-        showToast('Login failed', true);
+        showToast('Login failed: ' + e.message, true);
+    } finally {
+        btn.classList.remove('btn-loading');
     }
 }
 
