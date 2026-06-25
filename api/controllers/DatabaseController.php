@@ -18,8 +18,9 @@ class DatabaseController extends BaseController {
         ]);
     }
 
-    public function manageData() {
-        // Implementation for general data management (e.g., clearing cache, bulk deletions)
-        $this->respond(['message' => 'Data management feature to be implemented']);
+    public function clearCache() {
+        $this->checkAdmin();
+        $this->db->query("DELETE FROM requestCache");
+        $this->respond(['success' => true, 'message' => 'Request cache cleared successfully']);
     }
 }

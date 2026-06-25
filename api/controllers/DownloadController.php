@@ -9,16 +9,42 @@ class DownloadController extends BaseController {
 
         if (!empty($params['trackId'])) {
             $trackIds = is_array($params['trackId']) ? $params['trackId'] : explode(',', $params['trackId']);
+        } elseif (!empty($params['albumId'])) {
+            $albumId = $params['albumId'];
+            $tracks = $this->fetchFromItunes('lookup', ['id' => $albumId, 'entity' => 'song']);
+            foreach ($tracks as $t) {
+                if (($t['wrapperType'] ?? '') === 'track') $trackIds[] = $t['trackId'];
+            }
+        } elseif (!empty($params['artistId'])) {
+            $artistId = $params['artistId'];
+            $albums = $this->fetchFromItunes('lookup', ['id' => $artistId, 'entity' => 'album']);
+            foreach ($albums as $alb) {
+                if (($alb['wrapperType'] ?? '') === 'collection') {
+                    $tracks = $this->fetchFromItunes('lookup', ['id' => $alb['collectionId'], 'entity' => 'song']);
+                    foreach ($tracks as $t) {
+                        if (($t['wrapperType'] ?? '') === 'track') $trackIds[] = $t['trackId'];
+                    }
+                }
+            }
         }
 
         if (empty($trackIds)) {
-            $this->respond(['error' => 'No tracks provided'], 400);
+            $this->respond(['error' => 'No tracks found for the provided criteria'], 400);
         }
 
         $quality = $params['quality'] ?? '192';
+        $skipExisting = isset($params['skipExisting']) ? (bool)$params['skipExisting'] : false;
         $addedCount = 0;
+        $skippedCount = 0;
 
         foreach ($trackIds as $tid) {
+            if ($skipExisting) {
+                $exists = $this->db->getConnection()->querySingle("SELECT COUNT(*) FROM download_queue WHERE trackId = '" . $this->db->escapeString($tid) . "' AND status != 'failed'");
+                if ($exists > 0) {
+                    $skippedCount++;
+                    continue;
+                }
+            }
             $this->db->query("INSERT INTO download_queue (trackId, status, quality) VALUES (:tid, 'pending', :qual)", [
                 ':tid' => $tid,
                 ':qual' => $quality
@@ -26,7 +52,27 @@ class DownloadController extends BaseController {
             $addedCount++;
         }
 
-        $this->respond(['success' => true, 'added_count' => $addedCount]);
+        $this->respond([
+            'success' => true,
+            'added_count' => $addedCount,
+            'skipped_count' => $skippedCount
+        ]);
+    }
+
+    private function fetchFromItunes($endpoint, $params) {
+        $url = "https://itunes.apple.com/{$endpoint}?" . http_build_query($params);
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => true
+        ]);
+        $response = curl_exec($ch);
+        curl_close($ch);
+        $data = json_decode($response, true);
+        return $data['results'] ?? [];
     }
 
     public function queue() {

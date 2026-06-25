@@ -25,5 +25,6 @@ $router->add('DELETE', '/download/delete', 'DownloadController@delete');
 
 // Stats and DB management (to be implemented)
 $router->add('GET', '/stats', 'DatabaseController@stats');
+$router->add('POST', '/database/clear-cache', 'DatabaseController@clearCache');
 
 $router->handleRequest();
